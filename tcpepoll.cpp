@@ -19,6 +19,10 @@ void setnonblocking(int fd)
 {
     fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
 }
+//fcntl(fd, F_GETFL) 用于获取文件描述符 fd 的当前状态标志。
+//fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK) 将获取到的状态标志与 O_NONBLOCK 做按位或操作，然后将结果设置为文件描述符 fd 的新状态标志。O_NONBLOCK 是一个标志常量，用于表示非阻塞模式。
+//这段代码的作用是将文件描述符 fd 的状态标志设置为原有标志的基础上加上 O_NONBLOCK 标志，以使得对该文件描述符的 I/O 操作变为非阻塞模式。
+//在非阻塞模式下，I/O 操作会立即返回，如果没有数据可读或者无法立即进行写操作，函数会立即返回而不是等待。
 
 int main(int argc,char *argv[])
 {
@@ -30,7 +34,7 @@ int main(int argc,char *argv[])
     }
 
     // 创建服务端用于监听的listenfd。
-    int listenfd = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
+    int listenfd = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);//IPPROTO_TCP表示使用TCP协议
     if (listenfd < 0)
     {
         perror("socket() failed"); return -1;
@@ -38,6 +42,11 @@ int main(int argc,char *argv[])
 
     // 设置listenfd的属性，如果对这些属性不熟悉，百度之。
     int opt = 1; 
+    /* Set socket FD's option OPTNAME at protocol level LEVEL
+   to *OPTVAL (which is OPTLEN bytes long).
+   Returns 0 on success, -1 for errors.  */
+// extern int setsockopt (int __fd, int __level, int __optname, const void *__optval, socklen_t __optlen) __THROW;
+// static_cast 是 C++ 中四个命名强制类型转换操作符之一, 用于执行各种不同类型之间的转换
     setsockopt(listenfd,SOL_SOCKET,SO_REUSEADDR,&opt,static_cast<socklen_t>(sizeof opt));    // 必须的。
     setsockopt(listenfd,SOL_SOCKET,TCP_NODELAY   ,&opt,static_cast<socklen_t>(sizeof opt));    // 必须的。
     setsockopt(listenfd,SOL_SOCKET,SO_REUSEPORT ,&opt,static_cast<socklen_t>(sizeof opt));    // 有用，但是，在Reactor中意义不大。
@@ -61,7 +70,7 @@ int main(int argc,char *argv[])
     }
 
     int epollfd=epoll_create(1);        // 创建epoll句柄（红黑树）。
-
+    //句柄 : 是一个int值, 逻辑上相当于指针的指针, 本质上是对底层硬件实例的指针的引用, 用引用计数机制管理句柄的生命周期, 为了节约资源,
     // 为服务端的listenfd准备读事件。
     struct epoll_event ev;              // 声明事件的数据结构。
     ev.data.fd=listenfd;                 // 指定事件的自定义数据，会随着epoll_wait()返回的事件一并返回。
