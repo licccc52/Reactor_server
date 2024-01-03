@@ -13,6 +13,7 @@
 #include <sys/fcntl.h>
 #include <sys/epoll.h>
 #include <netinet/tcp.h>      // TCP_NODELAY需要包含这个头文件。
+#include"InetAddress.h"
 
 int main(int argc,char *argv[])
 {
@@ -37,12 +38,13 @@ int main(int argc,char *argv[])
     setsockopt(listenfd,SOL_SOCKET,SO_REUSEPORT ,&opt,static_cast<socklen_t>(sizeof opt));    // 有用，但是，在Reactor中意义不大。
     setsockopt(listenfd,SOL_SOCKET,SO_KEEPALIVE   ,&opt,static_cast<socklen_t>(sizeof opt));    // 可能有用，但是，建议自己做心跳。
 
-    struct sockaddr_in servaddr;                                  // 服务端地址的结构体。
-    servaddr.sin_family = AF_INET;                              // IPv4网络协议的套接字类型。
-    servaddr.sin_addr.s_addr = inet_addr(argv[1]);      // 服务端用于监听的ip地址。
-    servaddr.sin_port = htons(atoi(argv[2]));               // 服务端用于监听的端口。
+    // struct sockaddr_in servaddr;                                  // 服务端地址的结构体。
+    // servaddr.sin_family = AF_INET;                              // IPv4网络协议的套接字类型。
+    // servaddr.sin_addr.s_addr = inet_addr(argv[1]);      // 服务端用于监听的ip地址。
+    // servaddr.sin_port = htons(atoi(argv[2]));               // 服务端用于监听的端口。
+    InetAddress servaddr(argv[1], atoi(argv[2]));
 
-    if (bind(listenfd,(struct sockaddr *)&servaddr,sizeof(servaddr)) < 0 )
+    if (bind(listenfd,servaddr.addr(),sizeof(sockaddr)) < 0 )
     {
         perror("bind() failed"); close(listenfd); return -1;
     }
@@ -82,7 +84,7 @@ int main(int argc,char *argv[])
         // 如果infds>0，表示有事件发生的fd的数量。
         for (int ii=0;ii<infds;ii++)       // 遍历epoll返回的数组evs。
         {
-            if (evs[ii].events & EPOLLRDHUP)                     // 对方已关闭，有些系统检测不到，可以使用EPOLLIN，recv()返回0。
+            if (evs[ii].events & EPOLLRDHUP)    // 对方已关闭，有些系统检测不到，可以使用EPOLLIN，recv()返回0。
             {
                 printf("1client(eventfd=%d) disconnected.\n",evs[ii].data.fd);
                 close(evs[ii].data.fd);            // 关闭客户端的fd。
@@ -91,12 +93,13 @@ int main(int argc,char *argv[])
             {
                 if (evs[ii].data.fd==listenfd)   // 如果是listenfd有事件，表示有新的客户端连上来。
                 {
-                    ////////////////////////////////////////////////////////////////////////
-                    struct sockaddr_in clientaddr;
-                    socklen_t len = sizeof(clientaddr);
-                    int clientfd = accept4(listenfd,(struct sockaddr*)&clientaddr,&len,SOCK_NONBLOCK);
+                    ////////////////////////////////////////////////////////////////////////                    
+                    struct sockaddr_in peeraddr;
+                    socklen_t len = sizeof(peeraddr);
+                    int clientfd = accept4(listenfd,(struct sockaddr*)&peeraddr,&len,SOCK_NONBLOCK);
 
-                    printf ("accept client(fd=%d,ip=%s,port=%d) ok.\n",clientfd,inet_ntoa(clientaddr.sin_addr),ntohs(clientaddr.sin_port));
+                    InetAddress clientaddr(peeraddr);
+                    printf ("accept client(fd=%d,ip=%s,port=%d) ok.\n",clientfd,clientaddr.ip(),clientaddr.port());
 
                     // 为新客户端连接准备读事件，并添加到epoll中。
                     ev.data.fd=clientfd;
