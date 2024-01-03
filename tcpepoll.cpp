@@ -1,7 +1,3 @@
-/*
- * 程序名：tcpepoll.cpp，此程序用于演示采用epoll模型实现网络通讯的服务端。
- * 作者：吴从周
-*/
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -14,6 +10,7 @@
 #include <sys/epoll.h>
 #include <netinet/tcp.h>      // TCP_NODELAY需要包含这个头文件。
 #include"InetAddress.h"
+#include"Socket.h"
 
 int main(int argc,char *argv[])
 {
@@ -24,7 +21,8 @@ int main(int argc,char *argv[])
         return -1; 
     }
 
-    // 创建服务端用于监听的listenfd。
+    
+    /*  创建服务端用于监听的listenfd。
     int listenfd = socket(AF_INET,SOCK_STREAM|SOCK_NONBLOCK,IPPROTO_TCP);
     if (listenfd < 0)
     {
@@ -52,16 +50,25 @@ int main(int argc,char *argv[])
     if (listen(listenfd,128) != 0 )        // 在高并发的网络服务器中，第二个参数要大一些。
     {
         perror("listen() failed"); close(listenfd); return -1;
-    }
+    } */
+
+    Socket servsock(createnonblocking());
+    servsock.setkeepalive(true);
+    servsock.setreuseaddr(true);
+    servsock.settcpnodelay(true);
+    servsock.setreuseport(true);
+    InetAddress servaddr(argv[1], atoi(argv[2]));
+    servsock.bind(servaddr);
+    servsock.listen();
 
     int epollfd=epoll_create(1);        // 创建epoll句柄（红黑树）。
 
     // 为服务端的listenfd准备读事件。
     struct epoll_event ev;              // 声明事件的数据结构。
-    ev.data.fd=listenfd;       // 指定事件的自定义数据，会随着epoll_wait()返回的事件一并返回。
+    ev.data.fd=servsock.fd();       // 指定事件的自定义数据，会随着epoll_wait()返回的事件一并返回。
     ev.events=EPOLLIN;      // 让epoll监视listenfd的读事件，采用水平触发。
 
-    epoll_ctl(epollfd,EPOLL_CTL_ADD,listenfd,&ev);     // 把需要监视的listenfd和它的事件加入epollfd中。
+    epoll_ctl(epollfd,EPOLL_CTL_ADD,servsock.fd(),&ev);     // 把需要监视的listenfd和它的事件加入epollfd中, 第四个对象告诉内核监听什么事件
 
     struct epoll_event evs[10];      // 存放epoll_wait()返回事件的数组。
 
@@ -91,20 +98,17 @@ int main(int argc,char *argv[])
             }                                //  普通数据  带外数据
             else if (evs[ii].events & (EPOLLIN|EPOLLPRI))   // 接收缓冲区中有数据可以读。
             {
-                if (evs[ii].data.fd==listenfd)   // 如果是listenfd有事件，表示有新的客户端连上来。
+                if (evs[ii].data.fd==servsock.fd())   // 如果是listenfd有事件，表示有新的客户端连上来。
                 {
                     ////////////////////////////////////////////////////////////////////////                    
-                    struct sockaddr_in peeraddr;
-                    socklen_t len = sizeof(peeraddr);
-                    int clientfd = accept4(listenfd,(struct sockaddr*)&peeraddr,&len,SOCK_NONBLOCK);
-
-                    InetAddress clientaddr(peeraddr);
-                    printf ("accept client(fd=%d,ip=%s,port=%d) ok.\n",clientfd,clientaddr.ip(),clientaddr.port());
+                    InetAddress clientaddr;
+                    Socket *clientsock = new Socket(servsock.accept(clientaddr));
+                    printf ("accept client InetAddress Instance created (fd=%d,ip=%s,port=%d) ok.\n", clientsock->fd(),clientaddr.ip(),clientaddr.port());
 
                     // 为新客户端连接准备读事件，并添加到epoll中。
-                    ev.data.fd=clientfd;
+                    ev.data.fd= clientsock->fd();
                     ev.events=EPOLLIN|EPOLLET;           // 边缘触发。
-                    epoll_ctl(epollfd,EPOLL_CTL_ADD,clientfd,&ev);
+                    epoll_ctl(epollfd,EPOLL_CTL_ADD, clientsock->fd(), &ev);
                     ////////////////////////////////////////////////////////////////////////
                 }
                 else                                        // 如果是客户端连接的fd有事件。
