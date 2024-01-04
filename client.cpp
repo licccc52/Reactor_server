@@ -32,7 +32,7 @@ int main(int argc, char *argv[])//
     //The htons() function converts the unsigned short integer hostshort from host byte order to network byte order. 主机字节序转换为网络字节序, 用户输入的端口号
     servaddr.sin_addr.s_addr=inet_addr(argv[1]); /* 从 CP 中的数字和点符号转换 Internet 主机地址   按网络字节顺序转换为二进制数据。 */
 
-    if (connect(sockfd, (struct sockaddr *)&servaddr,sizeof(servaddr)) != 0)
+    if (connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) != 0)
     {
         printf("connect(%s:%s) failed.\n",argv[1],argv[2]); close(sockfd);  return -1;
     }

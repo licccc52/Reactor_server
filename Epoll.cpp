@@ -30,6 +30,7 @@ Epoll::~Epoll(){
     close(epollfd_);    // 在析构函数中关闭epollfd_
 }
 
+/*
 void Epoll::addfd(int fd, uint32_t op){
     epoll_event ev; // 声明事件的数据结构
     ev.data.fd = fd; //指定事件的自定义结构 , 会随着epoll_wait() 返回的事件一起返回
@@ -41,10 +42,33 @@ void Epoll::addfd(int fd, uint32_t op){
         exit(-1);
     }
 }
+*/
 
+void Epoll::updatechannel(Channel *ch){
+    epoll_event ev; //声明事件的数据结构
+    ev.data.ptr = ch;  //指定Channel
+    ev.events = ch->events(); //指定事件
+
+    if(ch->inepoll())//如果ch已经在红黑树上了
+    {
+        if(epoll_ctl(epollfd_, EPOLL_CTL_MOD, ch->fd(), &ev) == -1){
+            perror("epoll_ctl() failed .\n");
+            exit(-1);
+        }
+    }
+    else // 如果channel不在红黑树上
+    {
+        if(epoll_ctl(epollfd_, EPOLL_CTL_ADD, ch->fd(), &ev) == -1){
+            perror("epoll_ctl() failed.\n");
+            exit(-1);
+        }
+        ch->setinepoll(); // 把channel的inepoll_成员设置为true
+    }
+}
+/*
 
 //运行epoll_wait() ,等待事件的发生, 已经发生的事件用vector容器返回
-std::vector<epoll_event> Epoll::loop(int timeout){
+std::vector<epoll_events> Epoll::loop(int timeout){
     std::vector<epoll_event> evs; // 存放epoll_wait()返回的事件
 
     bzero(events_, sizeof(events_));
@@ -69,4 +93,33 @@ std::vector<epoll_event> Epoll::loop(int timeout){
     }
 
     return evs;
+}
+*/
+std::vector<Channel*> Epoll::loop(int timeout){
+    std::vector<Channel*> channels; // 存放epoll_wait()返回的事件
+
+    bzero(events_, sizeof(events_));
+    int infds = epoll_wait(epollfd_, events_, MaxEvents, timeout); //等待监视的fd有事件发生
+
+    //返回失败
+    if(infds < 0){
+        perror("epoll_wait() failed"); 
+        exit(-1);
+    }
+
+    //超时
+    if(infds == 0){
+        printf("epoll_wait() timeout.\n");
+        return channels;
+    }
+
+    //如果infds>0 ,表示有事件发生的fd的数量
+    for(int i = 0; i < infds; i++) //遍历epoll返回的数据events_
+    {
+        Channel* ch = (Channel*)events_[i].data.ptr;
+        ch->setrevents(events_[i].events);
+        channels.push_back(ch);
+    }
+
+    return channels;
 }
