@@ -1,0 +1,72 @@
+#include"Epoll.h"
+/*
+//Epoll类
+class Epoll{
+private:
+    static const int MaxEvents = 100; // epoll_wait()返回事件数组的大小.
+    int epollfd_ = 1;                //epoll句柄, 在构造函数中创建
+    epoll_event events_[MaxEvents]; // 存放epoll_wait()返回事件的数组, 在构造函数中分配内存
+
+public:
+    Epoll();         //在构造函数中创建了epollfd_
+    ~Epoll();        //在析构函数中关闭epollfd_
+
+
+    void addfd(int fd, uint32_t op); //把fd和他需要监视的事件添加到红黑树上
+    std::vector<epoll_event> loop(int timeout = -1); //运行 epoll_wait(), 等待事件的发生, 已发生的事件用vector容器返回
+};
+
+
+*/
+
+Epoll::Epoll(){
+    if((epollfd_ = epoll_create(1)) == -1){  //创建epoll句柄(红黑树 )
+        printf("epoll_create() failed(%d).\n", errno);
+        exit(-1);
+    }                
+}
+
+Epoll::~Epoll(){
+    close(epollfd_);    // 在析构函数中关闭epollfd_
+}
+
+void Epoll::addfd(int fd, uint32_t op){
+    epoll_event ev; // 声明事件的数据结构
+    ev.data.fd = fd; //指定事件的自定义结构 , 会随着epoll_wait() 返回的事件一起返回
+    ev.events = op; // 让epoll监视fd代表的事件
+
+    if(epoll_ctl(epollfd_, EPOLL_CTL_ADD, fd, &ev) == -1){ // 把需要监视的fd和他的事件加入epollfd中
+        //第三个参数是操作 EPOLL_CTL_ADD 实施的对象, 第四个参数告诉内核需要监听什么事件
+        printf("epoll_ctl() failed (%d).\n", errno);
+        exit(-1);
+    }
+}
+
+
+//运行epoll_wait() ,等待事件的发生, 已经发生的事件用vector容器返回
+std::vector<epoll_event> Epoll::loop(int timeout){
+    std::vector<epoll_event> evs; // 存放epoll_wait()返回的事件
+
+    bzero(events_, sizeof(events_));
+    int infds = epoll_wait(epollfd_, events_, MaxEvents, timeout); //等待监视的fd有事件发生
+
+    //返回失败
+    if(infds < 0){
+        perror("epoll_wait() failed"); 
+        exit(-1);
+    }
+
+    //超时
+    if(infds == 0){
+        printf("epoll_wait() timeout.\n");
+        return evs;
+    }
+
+    //如果infds>0 ,表示有事件发生的fd的数量
+    for(int i = 0; i < infds; i++) //遍历epoll返回的数据events_
+    {
+        evs.push_back(events_[i]);
+    }
+
+    return evs;
+}
