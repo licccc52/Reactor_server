@@ -1,5 +1,5 @@
 #include "Socket.h"
-
+#include<iostream>
 /*
 // socket类。
 class Socket
@@ -37,7 +37,7 @@ int createnonblocking()
  // 构造函数，传入一个已准备好的fd。
 Socket::Socket(int fd):fd_(fd)            
 {
-
+    std::cout << __FILE__ << " , "<< __LINE__ << ",   Socket Constructor" << std::endl;
 }
 
 // 在析构函数中，将关闭fd_。

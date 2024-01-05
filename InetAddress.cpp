@@ -1,12 +1,13 @@
 #include "InetAddress.h"
-
+#include<iostream>
 InetAddress::InetAddress()
 {
-
+    std::cout << __FILE__ << " , "<< __LINE__ << ",   InetAddress()1 Constructor" << std::endl;
 }
 
 InetAddress::InetAddress(const std::string &ip,uint16_t port)      // 如果是监听的fd，用这个构造函数。
 {
+    std::cout << __FILE__ << " , "<< __LINE__ << ",   InetAddress()2 Constructor" << std::endl;
     addr_.sin_family = AF_INET;                                 // IPv4网络协议的套接字类型。
     addr_.sin_addr.s_addr = inet_addr(ip.c_str());      // 服务端用于监听的ip地址。
     addr_.sin_port = htons(port);                              // 服务端用于监听的端口。
@@ -14,7 +15,7 @@ InetAddress::InetAddress(const std::string &ip,uint16_t port)      // 如果是�
 
 InetAddress::InetAddress(const sockaddr_in addr):addr_(addr)  // 如果是客户端连上来的fd，用这个构造函数。
 {
-
+    std::cout << __FILE__ << " , "<< __LINE__ << ",   InetAddress()3 Constructor" << std::endl;
 }
 
 InetAddress::~InetAddress()

@@ -1,4 +1,5 @@
 #include"Epoll.h"
+#include<iostream>
 /*
 //Epoll类
 class Epoll{
@@ -20,6 +21,7 @@ public:
 */
 
 Epoll::Epoll(){
+    std::cout << __FILE__ << " , "<< __LINE__ << ",   TcpServer Epoll" << std::endl;
     if((epollfd_ = epoll_create(1)) == -1){  //创建epoll句柄(红黑树 )
         printf("epoll_create() failed(%d).\n", errno);
         exit(-1);
@@ -103,13 +105,13 @@ std::vector<Channel*> Epoll::loop(int timeout){
 
     //返回失败
     if(infds < 0){
-        perror("epoll_wait() failed"); 
+        perror("std::vector<Channel*> Epoll:: epoll_wait() failed"); 
         exit(-1);
     }
 
     //超时
     if(infds == 0){
-        printf("epoll_wait() timeout.\n");
+        printf("std::vector<Channel*> Epoll:: epoll_wait() timeout.\n");
         return channels;
     }
 

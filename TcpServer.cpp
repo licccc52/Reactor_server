@@ -1,5 +1,5 @@
 #include"TcpServer.h"
-
+#include<iostream>
 /*
 
 class TcpServer{
@@ -16,8 +16,9 @@ public:
 
 */
 
-TcpServer::TcpServer(const std::string &ip, const uint16_t port)
+TcpServer::TcpServer(const std::string &ip, const uint16_t port):loop_(EventLoop())
 {
+    std::cout << __FILE__ << " , "<< __LINE__ << ",   TcpServer Constructor" << std::endl;
     Socket *servsock = new Socket(createnonblocking());
     InetAddress servaddr(ip, port);
     servsock->setkeepalive(true);
@@ -27,8 +28,7 @@ TcpServer::TcpServer(const std::string &ip, const uint16_t port)
 
     servsock->bind(servaddr);
     servsock->listen();
-
-
+    
     Channel *servchannel=new Channel(&loop_,servsock->fd());
     servchannel->setreadcallback(std::bind(&Channel::newconnection, servchannel, servsock));
     servchannel->enablereading(); //让epoll_wait()监视servchannel的读事件
