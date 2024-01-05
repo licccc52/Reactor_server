@@ -33,8 +33,9 @@ int main(int argc,char *argv[])
     servsock.listen();
 
     Epoll ep;
-    Channel* servchannel = new Channel(&ep, servsock.fd(), true);
-    servchannel->enablereading();
+    Channel* servchannel = new Channel(&ep, servsock.fd());
+    servchannel->setreadcallback(std::bind(&Channel::newconnection, servchannel, &servsock));
+    servchannel->enablereading(); //让epoll_wait()监视servchannel的读事件
     
 
     while (true)        // 事件循环。
@@ -44,7 +45,7 @@ int main(int argc,char *argv[])
         // 如果infds>0，表示有事件发生的fd的数量。
         for (auto &ch : channels)       // 遍历epoll返回的数组evs。
         {
-            ch->handleevent(&servsock);
+            ch->handleevent();
         }
     }
 
