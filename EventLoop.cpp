@@ -32,6 +32,7 @@ EventLoop::~EventLoop()   //在析构函数中销毁ep_
 
 void EventLoop::run() // 运行事件循环
 {
+    while(true){
     std::vector<Channel*> channels = ep_->loop(); // 存放epoll_wait() 返回事件
 
     // 如果infds>0，表示有事件发生的fd的数量。
@@ -40,10 +41,16 @@ void EventLoop::run() // 运行事件循环
         printf("INLOOP\n");
         ch->handleevent();
     }
-    
+    }
     
 }
 
 Epoll* EventLoop::ep(){
     return ep_;
+}
+
+// 把channel添加/更新到红黑树上，channel中有fd，也有需要监视的事件。
+void EventLoop::updatechannel(Channel *ch)                        
+{
+    ep_->updatechannel(ch);
 }

@@ -25,7 +25,7 @@ public:
 };
 */
 
-Channel::Channel(Epoll* ep, int fd): ep_(ep), fd_(fd) //构造函数
+Channel::Channel(EventLoop* loop,int fd):loop_(loop),fd_(fd)      // 构造函数。
 {
 
 }
@@ -50,7 +50,7 @@ void Channel::useet() // 采用边缘触发
 void Channel::enablereading() // 让epoll_wait()监视fd_的读事件
 {
     events_ |= EPOLLIN;
-    ep_->updatechannel(this);
+    loop_->updatechannel(this);
 }
 
 void Channel::setinepoll() // 把inepoll_成员的值设置为true
@@ -81,14 +81,22 @@ uint32_t Channel::revents() // 返回revents_成员
  void Channel::handleevent() //事件处理函数, epoll_wait() 返回的之后执行它
  { 
     if (revents_ & EPOLLRDHUP)    // 对方已关闭，有些系统检测不到，可以使用EPOLLIN，recv()返回0。
-            {
-                printf("1client(eventfd=%d) disconnected.\n",fd_);
-                close(fd_);            // 关闭客户端的fd。
-            }                                //  普通数据  带外数据
-            else if (revents_ & (EPOLLIN|EPOLLPRI))   // 接收缓冲区中有数据可以读。
-            {
-                readcallback_();
-            }
+        {
+            printf("1client(eventfd=%d) disconnected.\n",fd_);
+            close(fd_);            // 关闭客户端的fd。
+        }                                //  普通数据  带外数据
+        else if (revents_ & (EPOLLIN|EPOLLPRI))   // 接收缓冲区中有数据可以读。
+        {
+            // if (islisten_ == true)   // 如果是listenfd有事件，表示有新的客户端连上来。
+            // {
+            //     newconnection(servsock);
+            // }
+            // else                                        // 如果是客户端连接的fd有事件。
+            // {
+            //     onmessage();
+            // }
+            readcallback_();
+        }
     else if (revents_ & EPOLLOUT)                  // 有数据需要写，暂时没有代码，以后再说。
     {
     }
@@ -109,7 +117,7 @@ void Channel::newconnection(Socket* servsock)
     printf ("Channel::newconnection :  accept client InetAddress Instance created (fd=%d,ip=%s,port=%d) ok.\n", clientsock->fd(),clientaddr.ip(),clientaddr.port());
 
     // 为新客户端连接准备读事件，并添加到epoll中。
-    Channel* clientchannel = new Channel(ep_, clientsock->fd());
+    Channel* clientchannel = new Channel(loop_, clientsock->fd());
     clientchannel->setreadcallback(std::bind(&Channel::onmessage,clientchannel));
     clientchannel->useet();
     clientchannel->enablereading();
