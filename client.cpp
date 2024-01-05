@@ -54,7 +54,7 @@ int main(int argc, char *argv[])//
         memset(buf,0,sizeof(buf));
         if (recv(sockfd,buf,sizeof(buf),0) <=0)      // 接收服务端的回应。
         { 
-            printf("read() failed.\n");  close(sockfd);  return -1; //套接字关闭返回0 , 发生错误返回-1
+            printf("CLIENT :  read() failed.\n");  close(sockfd);  return -1; //套接字关闭返回0 , 发生错误返回-1
         }
 
         printf("recv:%s\n",buf);

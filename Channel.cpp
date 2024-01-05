@@ -87,14 +87,6 @@ uint32_t Channel::revents() // 返回revents_成员
             }                                //  普通数据  带外数据
             else if (revents_ & (EPOLLIN|EPOLLPRI))   // 接收缓冲区中有数据可以读。
             {
-                // if (islisten_ == true)   // 如果是listenfd有事件，表示有新的客户端连上来。
-                // {
-                //     newconnection(servsock);
-                // }
-                // else                                        // 如果是客户端连接的fd有事件。
-                // {
-                //     onmessage();
-                // }
                 readcallback_();
             }
     else if (revents_ & EPOLLOUT)                  // 有数据需要写，暂时没有代码，以后再说。

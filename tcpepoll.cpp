@@ -13,6 +13,7 @@
 #include"Socket.h"
 #include"Epoll.h"
 #include"Channel.h"
+#include"EventLoop.h"
 
 int main(int argc,char *argv[])
 {
@@ -28,26 +29,18 @@ int main(int argc,char *argv[])
     servsock.setreuseaddr(true);
     servsock.settcpnodelay(true);
     servsock.setreuseport(true);
+
     InetAddress servaddr(argv[1], atoi(argv[2]));
     servsock.bind(servaddr);
     servsock.listen();
 
-    Epoll ep;
-    Channel* servchannel = new Channel(&ep, servsock.fd());
+
+    EventLoop loop;
+    Channel* servchannel = new Channel(loop.ep(), servsock.fd());
     servchannel->setreadcallback(std::bind(&Channel::newconnection, servchannel, &servsock));
     servchannel->enablereading(); //让epoll_wait()监视servchannel的读事件
-    
-
-    while (true)        // 事件循环。
-    {
-        std::vector<Channel*> channels = ep.loop(); // 存放epoll_wait() 返回事件
-
-        // 如果infds>0，表示有事件发生的fd的数量。
-        for (auto &ch : channels)       // 遍历epoll返回的数组evs。
-        {
-            ch->handleevent();
-        }
+    while(true){
+        loop.run(); //运行事件循环
     }
-
-  return 0;
+    return 0;
 }
