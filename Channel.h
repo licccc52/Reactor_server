@@ -6,6 +6,14 @@
 #include"Socket.h"
 #include"EventLoop.h"
 
+
+//Channel(通道), 封装了监听fd和客户端连接的fd
+
+//监听的fd与客户端连接的fd的功能是不同的
+//监听的fd的生命周期 -> 与服务器端程序相同 -> 封装成Accoptor类
+//客户端连接的fd 的生命周期 -> 断开即终止  -> 封装成Connection类
+
+
 class EventLoop;
 
 class Channel{

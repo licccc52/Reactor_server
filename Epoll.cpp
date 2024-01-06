@@ -47,6 +47,7 @@ void Epoll::addfd(int fd, uint32_t op){
 */
 
 void Epoll::updatechannel(Channel *ch){
+    
     epoll_event ev; //声明事件的数据结构
     ev.data.ptr = ch;  //指定Channel
     ev.events = ch->events(); //指定事件

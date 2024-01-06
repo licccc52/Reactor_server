@@ -18,25 +18,15 @@ public:
 
 TcpServer::TcpServer(const std::string &ip, const uint16_t port):loop_(EventLoop())
 {
-    std::cout << __FILE__ << " , "<< __LINE__ << ",   TcpServer Constructor" << std::endl;
-    Socket *servsock = new Socket(createnonblocking());
-    InetAddress servaddr(ip, port);
-    servsock->setkeepalive(true);
-    servsock->setreuseaddr(true);
-    servsock->settcpnodelay(true);
-    servsock->setreuseport(true);
-
-    servsock->bind(servaddr);
-    servsock->listen();
-    
-    Channel *servchannel=new Channel(&loop_,servsock->fd());
-    servchannel->setreadcallback(std::bind(&Channel::newconnection, servchannel, servsock));
-    servchannel->enablereading(); //让epoll_wait()监视servchannel的读事件
+    if(&loop_ == nullptr){
+        std::cout << "! ----- In TcpServer::TcpServer , loop_ is null ---- ! " << std::endl;
+    }
+    acceptor_ = new Acceptor(&loop_, ip, port);
 }
 
 TcpServer::~TcpServer()
 {
-
+    delete acceptor_;
 }
 
 //运行事件循环

@@ -27,7 +27,7 @@ public:
 
 Channel::Channel(EventLoop* loop,int fd):loop_(loop),fd_(fd)      // 构造函数。
 {
-    std::cout << __FILE__ << " , "<< __LINE__ << ",   Channel Epoll" << std::endl;
+    std::cout << __FILE__ << " , "<< __LINE__ << ",   Channel Constructor" << std::endl;
 }
 
 Channel::~Channel()    //析构函数
@@ -50,7 +50,10 @@ void Channel::useet() // 采用边缘触发
 void Channel::enablereading() // 让epoll_wait()监视fd_的读事件
 {
     events_ |= EPOLLIN;
-    loop_->updatechannel(this);
+    if(loop_ == nullptr){
+        std::cout << "!! In CHANNEL::enablereading() ,Channel -> loop_ is nullptr  !! " << std::endl;
+    }
+    else loop_->updatechannel(this);
 }
 
 void Channel::setinepoll() // 把inepoll_成员的值设置为true
