@@ -111,14 +111,18 @@ void Channel::newconnection(Socket* servsock)
     Socket *clientsock = new Socket(servsock->accept(clientaddr));
     printf ("Channel::newconnection :  accept client InetAddress Instance created (fd=%d,ip=%s,port=%d) ok.\n", clientsock->fd(),clientaddr.ip(),clientaddr.port());
 
+    /*
     // 为新客户端连接准备读事件，并添加到epoll中。
     Channel* clientchannel = new Channel(loop_, clientsock->fd());
     clientchannel->setreadcallback(std::bind(&Channel::onmessage,clientchannel));
     clientchannel->useet();
     clientchannel->enablereading();
-
     //客户端连接上来的fd采用边缘触发
     ////////////////////////////////////////////////////////////////////////
+    */
+
+   Connection *conn = new Connection(loop_, clientsock);
+
 }
 
 

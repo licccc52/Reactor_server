@@ -1,7 +1,7 @@
 #include"Acceptor.h"
 #include<iostream>
 
-Acceptor::Acceptor(EventLoop *loop, const std::string &ip, const uint16_t port)
+Acceptor::Acceptor(EventLoop *loop, const std::string &ip, const uint16_t port):loop_(loop)
 {
     if(loop == nullptr){
         std::cout << "! ----- In Acceptor::Acceptor , loop is null ---- ! " << std::endl;
@@ -17,7 +17,6 @@ Acceptor::Acceptor(EventLoop *loop, const std::string &ip, const uint16_t port)
     servsock_->bind(servaddr);
     servsock_->listen();
     
-    loop_ = loop;
     acceptchannel_=new Channel(loop_,servsock_->fd());
     acceptchannel_->setreadcallback(std::bind(&Channel::newconnection, acceptchannel_, servsock_));
     acceptchannel_->enablereading(); //让epoll_wait()监视servchannel的读事件

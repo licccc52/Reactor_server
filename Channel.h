@@ -5,6 +5,7 @@
 #include"InetAddress.h"
 #include"Socket.h"
 #include"EventLoop.h"
+#include"Connection.h"
 
 
 //Channel(通道), 封装了监听fd和客户端连接的fd
