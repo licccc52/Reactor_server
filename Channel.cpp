@@ -102,7 +102,7 @@ uint32_t Channel::revents() // 返回revents_成员
     }
  }
 
-
+/*
 // 处理新客户端连接请求
 void Channel::newconnection(Socket* servsock) 
 {
@@ -119,12 +119,13 @@ void Channel::newconnection(Socket* servsock)
     clientchannel->enablereading();
     //客户端连接上来的fd采用边缘触发
     ////////////////////////////////////////////////////////////////////////
-    */
+    
 
    Connection *conn = new Connection(loop_, clientsock);
 
 }
 
+*/
 
 // 处理对端发送过来的信息
 void Channel::onmessage() 

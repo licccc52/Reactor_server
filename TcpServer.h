@@ -3,8 +3,9 @@
 #include"Socket.h"
 #include"Channel.h"
 #include"Acceptor.h"
+#include"Connection.h"
 
-
+class Connection;
 class Acceptor;
 //网络服务类
 class TcpServer{
@@ -19,4 +20,6 @@ public:
 
     void start_run();
 
+    //处理新客户端连接请求
+    void newconnection(Socket *clientsock);
 };

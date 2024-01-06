@@ -5,7 +5,6 @@
 #include"InetAddress.h"
 #include"Socket.h"
 #include"EventLoop.h"
-#include"Connection.h"
 
 
 //Channel(通道), 封装了监听fd和客户端连接的fd
@@ -43,7 +42,7 @@ public:
 
     void handleevent(); //事件处理函数, epoll_wait() 返回的之后执行它
 
-    void newconnection(Socket* servsock); // 处理新客户端连接请求
+    // void newconnection(Socket* servsock); // 处理新客户端连接请求
     void onmessage(); // 处理对端发送过来的信息
     void setreadcallback(std::function<void()> fn);
 };
