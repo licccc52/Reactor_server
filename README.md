@@ -16,3 +16,5 @@ Reactor Web Server
 7. Acceptor类, 对监听Socket listenfd进行封装
 
 8. Connection类, 对连接上来的clientfd进行封装
+
+9. 优化回调函数的结构, 管理Connection类和Channel类和 TcpServer类, 在TcpServer类中添加map容器管理 连接中的connection, 不要的connection在回调函数中删除

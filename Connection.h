@@ -16,6 +16,8 @@ private:
     EventLoop * loop_;          //Accoptor对应的事件循环, 由形参传入,  一个Acceptor对应一个事件循环
     Socket *clientsock_;          //与客户端通信的Socket
     Channel *clientchannel_;     //Acceptor对应的channel, 在构造函数中创建
+    std::function<void(Connection*)> closecallback_; //关闭fd_的回调函数, 将回调TcpServer::closeConnection()
+    std::function<void(Connection*)> errorcallback_; //连接错误的fd_的回调函数, 将回调TcpServer::errorConnection()
 
 
 public:
@@ -23,5 +25,15 @@ public:
     Connection(EventLoop *loop, Socket *clientsock);
     ~Connection();
 
+
+    int fd() const;              // 返回fd_成员。
+    std::string ip() const;     //返回fd_成员
+    uint16_t port() const;      //返回port_成员
+
+    void closecallback();       //TCP连接关闭(断开)的回调函数, 供Channel回调
+    void errorcallback();       //TCP连接错误的回调函数, 共Channel回调
+
+    void setclosecallback(std::function<void(Connection*)> fn);
+    void seterrorcallback(std::function<void(Connection*)> fn);
 
 };

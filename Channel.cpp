@@ -85,8 +85,9 @@ uint32_t Channel::revents() // 返回revents_成员
  { 
     if (revents_ & EPOLLRDHUP)    // 对方已关闭，有些系统检测不到，可以使用EPOLLIN，recv()返回0。
         {
-            printf("1client(eventfd=%d) disconnected.\n",fd_);
-            close(fd_);            // 关闭客户端的fd。
+            // printf("1client(eventfd=%d) disconnected.\n",fd_);
+            // close(fd_);            // 关闭客户端的fd。
+            closecallback_();
         }                                //  普通数据  带外数据
         else if (revents_ & (EPOLLIN|EPOLLPRI))   // 接收缓冲区中有数据可以读。
         {
@@ -97,8 +98,9 @@ uint32_t Channel::revents() // 返回revents_成员
     }
     else                                                                   // 其它事件，都视为错误。
     {
-        printf("3client(eventfd=%d) error.\n",fd_);
-        close(fd_);            // 关闭客户端的fd。
+        // printf("3client(eventfd=%d) error.\n",fd_);
+        // close(fd_);            // 关闭客户端的fd。
+        errorcallback_();
     }
  }
 
@@ -152,15 +154,29 @@ void Channel::onmessage()
         } 
         else if (nread == 0)  // 客户端连接已断开。
         {  
-            printf("2client(eventfd=%d) disconnected.\n",fd_);
-            close(fd_);            // 关闭客户端的fd。
+            // printf("2client(eventfd=%d) disconnected.\n",fd_);
+            // close(fd_);            // 关闭客户端的fd。
+            closecallback_();
             break;
         }
     }
 }
 
  // 设置fd_读事件的回调函数。
- void Channel::setreadcallback(std::function<void()> fn)    
- {
-    readcallback_=fn;
- }
+void Channel::setreadcallback(std::function<void()> fn)    
+{
+readcallback_=fn;
+}
+
+// 设置fd_发生错误的回调函数。
+void Channel::seterrorcallback(std::function<void()> fn)  //设置fd_读事件的回调函数
+{
+    errorcallback_=fn;
+}
+
+// 设置关闭fd_的回调函数。
+void Channel::setclosecallback(std::function<void()> fn)  //设置关闭fd_的回调函数
+{
+    closecallback_=fn;
+}
+

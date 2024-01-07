@@ -37,7 +37,7 @@ void Acceptor::newconnection()
     ////////////////////////////////////////////////////////////////////////                    
     InetAddress clientaddr;// 注意，clientsock只能new出来，不能在栈上，否则析构函数会关闭fd。
     Socket *clientsock = new Socket(servsock_->accept(clientaddr));
-    printf ("Channel::newconnection :  accept client InetAddress Instance created (fd=%d,ip=%s,port=%d) ok.\n", clientsock->fd(),clientaddr.ip(),clientaddr.port());
+
 
     /*
     // 为新客户端连接准备读事件，并添加到epoll中。
@@ -49,7 +49,7 @@ void Acceptor::newconnection()
     ////////////////////////////////////////////////////////////////////////
     */
 
-//    Connection *conn = new Connection(loop_, clientsock);
+    //Connection *conn = new Connection(loop_, clientsock);
     newconnectioncb_(clientsock);
     
 }

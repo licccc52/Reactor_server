@@ -25,7 +25,8 @@ private:
     uint32_t events_ = 0;   // fd_需要监视的事件, listenfd和clientfd需要监视的EPOLLIN, clientfd还可能需要监视EPOLLOUT
     uint32_t revents_ = 0;  // fd_已经发生的事件.
     std::function<void()> readcallback_ ; // fd_读事件的回调函数
-
+    std::function<void()> closecallback_ ; //  关闭fd_的回调函数, 将回调Connection::closecallback()
+    std::function<void()> errorcallback_ ; // fd_发生了错误的回调函数, 将回调Connection::errorcallback()
 
 public:
     Channel(EventLoop* loop, int fd_); // 构造函数
@@ -40,9 +41,12 @@ public:
     uint32_t events(); // 返回events_成员
     uint32_t revents(); // 返回revents_成员
 
-    void handleevent(); //事件处理函数, epoll_wait() 返回的之后执行它
+    void handleevent(); //事件处理函数, epoll_wait() 返回之后执行它
 
-    // void newconnection(Socket* servsock); // 处理新客户端连接请求
     void onmessage(); // 处理对端发送过来的信息
-    void setreadcallback(std::function<void()> fn);
+
+    void setreadcallback(std::function<void()> fn);  //设置fd_读事件的回调函数
+    void setclosecallback(std::function<void()> fn);  //设置关闭fd_的回调函数
+    void seterrorcallback(std::function<void()> fn); //设置fd_发生了错误的回调函数
+
 };
