@@ -38,7 +38,7 @@ void EventLoop::run() // 运行事件循环
     // 如果infds>0，表示有事件发生的fd的数量。
     for (auto &ch : channels)       // 遍历epoll返回的数组evs。
     {
-        printf("INLOOP\n");
+        printf("IN EventLoop::run() -> EVENTLOOP\n");
         ch->handleevent();
     }
     }

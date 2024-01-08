@@ -6,7 +6,7 @@ Acceptor::Acceptor(EventLoop *loop, const std::string &ip, const uint16_t port):
     if(loop == nullptr){
         std::cout << "! ----- In Acceptor::Acceptor , loop is null ---- ! " << std::endl;
     }
-    std::cout << __FILE__ << " , "<< __LINE__ << ",   TcpServer Constructor" << std::endl;
+    std::cout << __FILE__ << " , "<< __LINE__ << ",   Acceptor Constructor" << std::endl;
     servsock_ = new Socket(createnonblocking());
     InetAddress servaddr(ip, port);
     servsock_->setkeepalive(true);
@@ -50,6 +50,8 @@ void Acceptor::newconnection()
     */
 
     //Connection *conn = new Connection(loop_, clientsock);
+    //给客户端连接的socket设置ip和端口号
+    clientsock->setipport(clientaddr.ip(), clientaddr.port());
     newconnectioncb_(clientsock);
     
 }

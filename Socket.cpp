@@ -81,8 +81,13 @@ void Socket::bind(const InetAddress& servaddr)
     {
         perror("bind() failed"); close(fd_); exit(-1);
     }
-    ip_ = servaddr.ip();
-    port_ = servaddr.port();
+    setipport(servaddr.ip(), servaddr.port());
+}
+
+void Socket::setipport(const std::string &ip, uint16_t port)           //设置ip 和 port成员
+{
+    ip_ = ip;
+    port_ = port;
 }
 
 void Socket::listen(int nn)
@@ -93,7 +98,7 @@ void Socket::listen(int nn)
     }
 }
 
-int Socket::accept(InetAddress& clientaddr)
+int Socket::accept(InetAddress& clientaddr) 
 {
     sockaddr_in peeraddr;
     socklen_t len = sizeof(peeraddr);
@@ -101,8 +106,8 @@ int Socket::accept(InetAddress& clientaddr)
 
     clientaddr.setaddr(peeraddr);             // 客户端的地址和协议。
 
-    ip_ = clientaddr.ip();
-    port_ = clientaddr.port();
+    // ip_ = clientaddr.ip();
+    // port_ = clientaddr.port();
 
     return clientfd;    
 }
@@ -110,7 +115,7 @@ int Socket::accept(InetAddress& clientaddr)
 std::string Socket::ip() const     //返回fd_成员
 {
     return ip_;
-}
+}  
 
 uint16_t Socket::port() const      //返回port_成员
 {

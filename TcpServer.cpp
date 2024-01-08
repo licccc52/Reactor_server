@@ -46,14 +46,15 @@ void  TcpServer::newconnection(Socket *clientsock){
     Connection *conn = new Connection(&loop_, clientsock); //此处新对象还未释放
     conn->setclosecallback(std::bind(&TcpServer::closeconnection, this, std::placeholders::_1)); //此处的占位符可以直接赋conn, 以为后来调用的时候是赋值的conn对象的this指针
     conn->seterrorcallback(std::bind(&TcpServer::errorconnection, this, std::placeholders::_1));//此处的占位符可以直接赋conn, 以为后来调用的时候是赋值的conn对象的this指针
-    printf ("Channel::newconnection :  accept client InetAddress Instance created (fd=%d,ip=%s,port=%d) ok.\n", clientsock->fd(), conn->ip().c_str(), conn->port());
+    conn->setonmessagecallback(std::bind(&TcpServer::onmessage, this, std::placeholders::_1, std::placeholders::_2));
+    printf ("TcpServer::newconnection :  accept client InetAddress Instance created (fd=%d,ip=%s,port=%d) ok.\n", clientsock->fd(), conn->ip().c_str(), conn->port());
     conns_[conn->fd()] = conn;
 }
 
 void TcpServer::closeconnection(Connection *conn) //关闭客户端的连接, 在Connection类中回调此函数
 {
     std::cout << "回调函数 TcpServer::closecallback() " << std::endl;
-    printf("client(eventfd=%d) error.\n", conn->fd());
+    printf("client(eventfd=%d) disconnected. \n", conn->fd());
     //从map容器中删除
     conns_.erase(conn->fd());
 }
@@ -64,4 +65,17 @@ void TcpServer::errorconnection(Connection *conn) //客户端的连接错误, �
     printf("client(eventfd=%d) error\n", conn->fd());
     //从map容器中删除
     conns_.erase(conn->fd());
+}
+
+
+//处理客户端的请求报文, 在Connection类中回调此函数
+void TcpServer::onmessage(Connection *conn, std::string message)
+{
+    message="reply:"+message;
+    
+    int len=message.size();                        // 计算回应报文的大小。
+    std::string tmpbuf((char*)&len,4);  // 把报文头部填充到回应报文中。
+    tmpbuf.append(message);             // 把报文内容填充到回应报文中。
+    
+    send(conn->fd(),tmpbuf.data(),tmpbuf.size(),0);   // 把临时缓冲区中的数据直接send()出去。
 }

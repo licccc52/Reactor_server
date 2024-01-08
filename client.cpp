@@ -40,25 +40,30 @@ int main(int argc, char *argv[])//
     printf("connect ok.\n");
     // printf("开始时间：%d",time(0));
 
-    for (int ii=0;ii<200000;ii++)
+    for (int ii=0;ii<10;ii++)
     {
-        // 从命令行输入内容。
-        memset(buf,0,sizeof(buf)); //初始化buffer, 发送数据缓冲区
-        printf("please input:"); scanf("%s",buf);
-
-        if (send(sockfd,buf,strlen(buf),0) <=0)       // 把命令行输入的内容发送给服务端。
-        {  //send()函数 如果函数拷贝数据成功, 返回实际拷贝的字节数, 对方调用关闭函数来主动关闭连接返回0, 如果函数在拷贝数据时候出现错误返回-1
-            printf("write() failed.\n");  close(sockfd);  return -1;
-        }
-        
         memset(buf,0,sizeof(buf));
-        if (recv(sockfd,buf,sizeof(buf),0) <=0)      // 接收服务端的回应。
-        { 
-            printf("CLIENT :  read() failed.\n");  close(sockfd);  return -1; //套接字关闭返回0 , 发生错误返回-1
-        }
+        sprintf(buf,"这是第%d个超级女生。",ii);
+
+        char tmpbuf[1024];                 // 临时的buffer，报文头部+报文内容。
+        memset(tmpbuf,0,sizeof(tmpbuf));
+        int len=strlen(buf);                 // 计算报文的大小。
+        memcpy(tmpbuf,&len,4);       // 拼接报文头部。
+        memcpy(tmpbuf+4,buf,len);  // 拼接报文内容。
+
+        send(sockfd,tmpbuf,len+4,0);  // 把请求报文发送给服务端。
+    }
+        
+    for (int ii=0;ii<10;ii++)
+    {
+        int len;
+        recv(sockfd,&len,4,0);            // 先读取4字节的报文头部。
+
+        memset(buf,0,sizeof(buf));
+        recv(sockfd,buf,len,0);           // 读取报文内容。
 
         printf("recv:%s\n",buf);
     }
 
-    // printf("结束时间：%d",time(0));
+    // printf("结束时间：%d\n",time(0));
 } 
