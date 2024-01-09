@@ -17,6 +17,7 @@ private:
     static const int MaxEvents = 100; // epoll_wait()返回事件数组的大小.
     int epollfd_ = 1;                //epoll句柄, 在构造函数中创建
     epoll_event events_[MaxEvents]; // 存放epoll_wait()返回事件的数组, 在构造函数中分配内存
+            //events_指向检测到的事件集合, 将所有就绪的事件哦才能够内核事件表中复制到events_中
 
 public:
     Epoll();         //在构造函数中创建了epollfd_

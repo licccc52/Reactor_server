@@ -69,13 +69,14 @@ void TcpServer::errorconnection(Connection *conn) //客户端的连接错误, �
 
 
 //处理客户端的请求报文, 在Connection类中回调此函数
-void TcpServer::onmessage(Connection *conn, std::string message)
+void TcpServer:: onmessage(Connection *conn, std::string message)
 {
-    message="reply:"+message;
+    message="reply:"+ message;
     
     int len=message.size();                        // 计算回应报文的大小。
     std::string tmpbuf((char*)&len,4);  // 把报文头部填充到回应报文中。
     tmpbuf.append(message);             // 把报文内容填充到回应报文中。
     
-    send(conn->fd(),tmpbuf.data(),tmpbuf.size(),0);   // 把临时缓冲区中的数据直接send()出去。
+    // send(conn->fd(),tmpbuf.data(),tmpbuf.size(),0);   // 把临时缓冲区中的数据直接send()出去。
+    conn->send(tmpbuf.data(),tmpbuf.size()); //把临时缓冲区中的数据发送出去
 }

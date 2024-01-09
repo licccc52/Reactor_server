@@ -28,3 +28,17 @@
 2) 在报文前面加上报文长度. 报文头部(4字节的整数) + 报文内容
 3) 报文之间用分隔符. http协议 \r\n\r\n
 
+
+# 项目结构
+基础类 
+Socket : fd_ ,  ip_ , port_ 
+Channel : fd_ , EventLoop*, 通过回调函数控制读写事件的执行, 处理读写epoll_wait()返回之后, 控制事件的执行
+TcpServer 的构造函数创建 Acceptor实例, setnewconnection (TcpServer::newconnection),   在newconnection中accept(), 创建connection, 设置conn实例的回调函数, 将新创建的conn实例加入到 TcpServer::map中,
+Acceptor 创建的时候 执行socket(), bind(), listne(); 
+
+Connection::onmessage() 读事件完成 -> TcpServer:: onmessage(), 准备回送的信息, 添加报文头部 -> Connection::send(), 添加数据到outputbuffer_, 注册写事件, 把注册后的event_添加到epoll的红黑树上
+Connection::writecallback()
+
+
+使用outputbuffer_缓冲区发送数据, 
+EventLoop::run() // 运行事件循环, std::vector<Channel*> channels = ep_->loop(), Epoll::loop()//把有时间发生的fd添加到vector<Channel*>; // 存放epoll_wait() 返回事件, // 遍历epoll返回的数组evs, ch->handleevent();遍历事件 -> Channel::handleevent() -> Connection::writecallback()"只有Connection有发送和读取缓冲区" -> ::send(), 然后清空缓冲区,注销写事件,clientchannel_->disabelwriting();

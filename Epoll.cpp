@@ -119,7 +119,12 @@ std::vector<Channel*> Epoll::loop(int timeout){
     //如果infds>0 ,表示有事件发生的fd的数量
     for(int i = 0; i < infds; i++) //遍历epoll返回的数据events_
     {
-        Channel* ch = (Channel*)events_[i].data.ptr;
+//      struct epoll_event
+//     {
+//      uint32_t events;	/* Epoll events */
+//      epoll_data_t data;	/* User data variable */
+//     } __EPOLL_PACKED;
+        Channel* ch = (Channel*)events_[i].data.ptr; //epoll_event
         ch->setrevents(events_[i].events);
         channels.push_back(ch);
     }

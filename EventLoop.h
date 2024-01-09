@@ -3,6 +3,7 @@
 #include "Channel.h"
 
 //事件循环类
+//Epoll 和 Channel, 负责 事件运行 
 class Epoll;
 class Channel;
 

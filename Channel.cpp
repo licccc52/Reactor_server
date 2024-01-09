@@ -56,6 +56,27 @@ void Channel::enablereading() // 让epoll_wait()监视fd_的读事件
     else loop_->updatechannel(this);
 }
 
+void Channel::disablereading() // 取消读事件
+{
+    events_ &= ~EPOLLIN;
+    loop_ -> updatechannel(this);
+}
+
+
+void Channel::enablewriting() // 注册写事件
+{
+    events_ |= EPOLLOUT;
+    loop_ -> updatechannel(this);
+}
+
+
+void Channel::disabelwriting() // 取消写事件
+{
+    events_ &= ~EPOLLOUT;
+    loop_ -> updatechannel(this);
+}
+
+
 void Channel::setinepoll() // 把inepoll_成员的值设置为true
 {
     inepoll_ = true;
@@ -85,22 +106,26 @@ uint32_t Channel::revents() // 返回revents_成员
  { 
     if (revents_ & EPOLLRDHUP)    // 对方已关闭，有些系统检测不到，可以使用EPOLLIN，recv()返回0。
         {
+            printf("Channel::handleevent() EPOLLRDHUP\n");
             // printf("1client(eventfd=%d) disconnected.\n",fd_);
             // close(fd_);            // 关闭客户端的fd。
-            closecallback_();
+            closecallback_();   //回调std::bind(&Connection::closecallback,this)
         }                                //  普通数据  带外数据
         else if (revents_ & (EPOLLIN|EPOLLPRI))   // 接收缓冲区中有数据可以读。
         {
-            readcallback_();
+            printf("Channel::handleevent() (EPOLLIN|EPOLLPRI)\n");
+            readcallback_();     //回调std::bind(&Connection::onmessage,this)
         }
     else if (revents_ & EPOLLOUT)                  // 有数据需要写，暂时没有代码，以后再说。
     {
+            printf("Channel::handleevent() EPOLLOUT\n");
+        writecallback_(); //回调std::bind(&Connection::writecallback,this)
     }
     else                                                                   // 其它事件，都视为错误。
     {
         // printf("3client(eventfd=%d) error.\n",fd_);
         // close(fd_);            // 关闭客户端的fd。
-        errorcallback_();
+        errorcallback_(); //回调std::bind(&Connection::errorcallback,this)
     }
  }
 
@@ -128,7 +153,7 @@ void Channel::newconnection(Socket* servsock)
 }
 
 */
-
+/*
 // 处理对端发送过来的信息
 void Channel::onmessage() 
 {
@@ -162,6 +187,8 @@ void Channel::onmessage()
     }
 }
 
+*/
+
  // 设置fd_读事件的回调函数。
 void Channel::setreadcallback(std::function<void()> fn)    
 {
@@ -180,3 +207,7 @@ void Channel::setclosecallback(std::function<void()> fn)  //设置关闭fd_的�
     closecallback_=fn;
 }
 
+void Channel::setwritecallback(std::function<void()> fn) //设置fd_发生了错误的回调函数
+{
+    writecallback_ = fn;
+}
