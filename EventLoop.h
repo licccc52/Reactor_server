@@ -13,7 +13,7 @@ class EventLoop
 private:
     
     Epoll *ep_;     //每个事件循环只有一个Epoll
-    std::function<void(EventLoop*)> epolltimeoutcallback_;//epoll_wait()超时的回调函数
+    std::function<void(EventLoop*)> epolltimeoutcallback_;//epoll_wait()超时的回调函数, 此回调函数在TcpServer中初始化的时候设置
 
 public:
 

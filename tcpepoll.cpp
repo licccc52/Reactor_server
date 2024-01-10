@@ -1,4 +1,5 @@
-#include "TcpServer.h"
+#include "EchoServer.h"
+class EchoServer;
 
 int main(int argc,char *argv[])
 {
@@ -9,9 +10,9 @@ int main(int argc,char *argv[])
         return -1; 
     }
 
-    TcpServer tcpserver(argv[1], atoi(argv[2]));
+    EchoServer server(argv[1], atoi(argv[2]));
     
-    tcpserver.start_run(); //运行事件循环
+    server.Start(); //运行事件循环
     
     return 0;
 }

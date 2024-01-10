@@ -38,7 +38,7 @@ void EventLoop::run() // 运行事件循环
 
         //如果channels为空, 表示超时, 回调TcpServer::connection
         if(channels.size() == 0){
-            epolltimeoutcallback_(this);
+            epolltimeoutcallback_(this); //在TcpServer中, EventLoop初始化的时候设置
         } 
         else{
             // 如果infds>0，表示有事件发生的fd的数量。

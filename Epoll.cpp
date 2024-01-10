@@ -111,7 +111,7 @@ std::vector<Channel*> Epoll::loop(int timeout){
         //EFAULT : 参数events_指向的内存区域不可写
         //EINVAL : epfd不是一个epoll文件描述符, 或者参数maxevents小于等于0
         //EINTR : 阻塞过程中的信号总段, epoll_wait()可以避免, 或者错误处理中, 解析error后重新调用epoll_wait()
-        perror("std::vector<Channel*> Epoll:: epoll_wait() failed"); 
+        perror("Epoll:: epoll_wait(), std::vector<Channel*> , failed"); 
         exit(-1);
     }
 
@@ -119,7 +119,7 @@ std::vector<Channel*> Epoll::loop(int timeout){
     if(infds == 0){
         //如果epoll_wait()超时, 表示系统很空闲, 返回的channels将为空
         //这里 的日志显示 改用在EventLoop中使用回调函数实现
-        // printf("std::vector<Channel*> Epoll:: epoll_wait() timeout.\n");
+        printf("Epoll:: epoll_wait(), std::vector<Channel*> , timeout.\n");
         return channels;
     }
 
