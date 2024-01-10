@@ -82,6 +82,10 @@ void Connection::setonmessagecallback(std::function<void(Connection*, std::strin
     onmessagecallback_ = fn;
 }
 
+void Connection::setsendcompletecallback(std::function<void(Connection*)> fn) //设置 当Connection类对象完成信息发送的时候回调的函数
+{
+    sendcompletecallback_ = fn;
+}
 
 void Connection::onmessage() 
 {
@@ -151,5 +155,5 @@ void Connection::send(const char *data, size_t size) //发送数据
     
     //注册写事件
     clientchannel_->enablewriting(); //注册写事件
-
+    sendcompletecallback_(this);
 }

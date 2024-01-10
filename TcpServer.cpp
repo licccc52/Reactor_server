@@ -24,6 +24,9 @@ TcpServer::TcpServer(const std::string &ip, const uint16_t port):loop_(EventLoop
     acceptor_ = new Acceptor(&loop_, ip, port);
     acceptor_->setnewconnection(std::bind(&TcpServer::newconnection, this, std::placeholders::_1));
     //此处调用回调函数是为了 创建 Connection类, 在accept()函数执行之后, 需要创建客户端channel
+
+    loop_.setepolltimeoutcallback(std::bind(&TcpServer::epolltimeout, this, std::placeholders::_1));
+    
 }
 
 TcpServer::~TcpServer()
@@ -47,6 +50,7 @@ void  TcpServer::newconnection(Socket *clientsock){
     conn->setclosecallback(std::bind(&TcpServer::closeconnection, this, std::placeholders::_1)); //此处的占位符可以直接赋conn, 以为后来调用的时候是赋值的conn对象的this指针
     conn->seterrorcallback(std::bind(&TcpServer::errorconnection, this, std::placeholders::_1));//此处的占位符可以直接赋conn, 以为后来调用的时候是赋值的conn对象的this指针
     conn->setonmessagecallback(std::bind(&TcpServer::onmessage, this, std::placeholders::_1, std::placeholders::_2));
+    conn->setsendcompletecallback(std::bind(&TcpServer::sendcomplete, this, std::placeholders::_1));
     printf ("TcpServer::newconnection :  accept client InetAddress Instance created (fd=%d,ip=%s,port=%d) ok.\n", clientsock->fd(), conn->ip().c_str(), conn->port());
     conns_[conn->fd()] = conn;
 }
@@ -78,5 +82,19 @@ void TcpServer:: onmessage(Connection *conn, std::string message)
     tmpbuf.append(message);             // 把报文内容填充到回应报文中。
     
     // send(conn->fd(),tmpbuf.data(),tmpbuf.size(),0);   // 把临时缓冲区中的数据直接send()出去。
+    //TcpServer把发送的任务交给connection类对象
     conn->send(tmpbuf.data(),tmpbuf.size()); //把临时缓冲区中的数据发送出去
+}
+
+void TcpServer::sendcomplete(Connection *conn) // 数据发送完成后, 在Connection类中回调此函数, 用来通知TcpServer数据已经发送完成
+{
+    printf("send complete.\n");
+
+    //可以根据业务的需求, 增加其他的代码
+}
+
+void TcpServer::epolltimeout(EventLoop *loop) //epoll_wait()超时, 在EventLoop类中回调此函数
+{
+    printf("epoll_wait() timeout.\n");
+    //以下可以根据业务需求添加代码
 }

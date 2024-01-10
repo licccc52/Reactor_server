@@ -32,15 +32,22 @@ EventLoop::~EventLoop()   //在析构函数中销毁ep_
 
 void EventLoop::run() // 运行事件循环
 {
-    while(true){
-    std::vector<Channel*> channels = ep_->loop(); // 存放epoll_wait() 返回事件
+    while(true){//事件循环
+        //超时事件设置为10s
+        std::vector<Channel*> channels = ep_->loop(10 * 1000); // 存放epoll_wait() 返回事件,等待监视的fd有事件发生
 
-    // 如果infds>0，表示有事件发生的fd的数量。
-    for (auto &ch : channels)       // 遍历epoll返回的数组evs。
-    {
-        printf("IN EventLoop::run() -> EVENTLOOP\n");
-        ch->handleevent();
-    }
+        //如果channels为空, 表示超时, 回调TcpServer::connection
+        if(channels.size() == 0){
+            epolltimeoutcallback_(this);
+        } 
+        else{
+            // 如果infds>0，表示有事件发生的fd的数量。
+            for (auto &ch : channels)       // 遍历epoll返回的数组evs。
+            {
+                printf("IN EventLoop::run() -> EVENTLOOP\n");
+                ch->handleevent();
+            }
+        }
     }
     
 }
@@ -54,4 +61,9 @@ void EventLoop::updatechannel(Channel *ch)
 {
     ep_->updatechannel(ch);
     
+}
+
+void EventLoop::setepolltimeoutcallback(std::function<void(EventLoop*)> fn)  //设置epoll_wait()超时的回调函数
+{
+    epolltimeoutcallback_ = fn;
 }

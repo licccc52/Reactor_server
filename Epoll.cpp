@@ -99,20 +99,27 @@ std::vector<epoll_events> Epoll::loop(int timeout){
 }
 */
 std::vector<Channel*> Epoll::loop(int timeout){
-    std::vector<Channel*> channels; // 存放epoll_wait()返回的事件
 
+    std::vector<Channel*> channels; // 存放epoll_wait()返回的事件
+    
     bzero(events_, sizeof(events_));
     int infds = epoll_wait(epollfd_, events_, MaxEvents, timeout); //等待监视的fd有事件发生
 
     //返回失败
     if(infds < 0){
+        //EBADF : epfd不是一个有效的描述符
+        //EFAULT : 参数events_指向的内存区域不可写
+        //EINVAL : epfd不是一个epoll文件描述符, 或者参数maxevents小于等于0
+        //EINTR : 阻塞过程中的信号总段, epoll_wait()可以避免, 或者错误处理中, 解析error后重新调用epoll_wait()
         perror("std::vector<Channel*> Epoll:: epoll_wait() failed"); 
         exit(-1);
     }
 
     //超时
     if(infds == 0){
-        printf("std::vector<Channel*> Epoll:: epoll_wait() timeout.\n");
+        //如果epoll_wait()超时, 表示系统很空闲, 返回的channels将为空
+        //这里 的日志显示 改用在EventLoop中使用回调函数实现
+        // printf("std::vector<Channel*> Epoll:: epoll_wait() timeout.\n");
         return channels;
     }
 
