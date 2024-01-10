@@ -42,3 +42,6 @@ Connection::writecallback()
 
 使用outputbuffer_缓冲区发送数据, 
 EventLoop::run() // 运行事件循环, std::vector<Channel*> channels = ep_->loop(), Epoll::loop()//把有时间发生的fd添加到vector<Channel*>; // 存放epoll_wait() 返回事件, // 遍历epoll返回的数组evs, ch->handleevent();遍历事件 -> Channel::handleevent() -> Connection::writecallback()"只有Connection有发送和读取缓冲区" -> ::send(), 然后清空缓冲区,注销写事件,clientchannel_->disabelwriting();
+
+
+![回调过程]/home/lichuang/Reactor_server/recall_path.png
