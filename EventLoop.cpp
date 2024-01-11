@@ -21,7 +21,7 @@ public:
 
 EventLoop::EventLoop() :ep_(new Epoll)    //在析构函数中创建Epoll对象ep_.
 {
-    std::cout << __FILE__ << " , "<< __LINE__ << ",   EventLoop Constructor" << std::endl;
+    // std::cout << __FILE__ << " , "<< __LINE__ << ",   EventLoop Constructor" << std::endl;
 }
 
 

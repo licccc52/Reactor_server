@@ -21,7 +21,8 @@ public:
 };
 */
 
-EchoServer::EchoServer(const std::string &ip,const uint16_t port, int threadnum):tcpserver_(ip,port, threadnum)//构造函数初始化 , threadnum默认为3
+EchoServer::EchoServer(const std::string &ip,const uint16_t port,int subthreadnum, int workthreadnum) //构造函数初始化 , threadnum默认为3
+                :tcpserver_(ip,port, subthreadnum), threadpool_(workthreadnum, "WORKS")
 {
     // 以下代码不是必须的，业务关心什么事件，就指定相应的回调函数。
     tcpserver_.setnewconnectioncb(std::bind(&EchoServer::HandleNewConnection, this, std::placeholders::_1));
@@ -46,7 +47,6 @@ void EchoServer::Start()
 // 处理新客户端连接请求，在TcpServer类中回调此函数。
 void EchoServer::HandleNewConnection(Connection *conn)    
 {
-    std::cout << "New Connection Come in." << std::endl;
     printf("EchoServer::HandleNewConnection() : thread is %ld.\n", syscall(SYS_gettid));
     
     // 根据业务的需求，在这里可以增加其它的代码。
@@ -56,14 +56,13 @@ void EchoServer::HandleNewConnection(Connection *conn)
 void EchoServer::HandleClose(Connection *conn)  
 {
     std::cout << "EchoServer conn closed." << std::endl;
-
     // 根据业务的需求，在这里可以增加其它的代码。
 }
 
 // 客户端的连接错误，在TcpServer类中回调此函数。
 void EchoServer::HandleError(Connection *conn)  
 {
-    std::cout << "EchoServer conn error." << std::endl;
+    // std::cout << "EchoServer conn error." << std::endl;
 
     // 根据业务的需求，在这里可以增加其它的代码。
 }
@@ -73,11 +72,17 @@ void EchoServer::HandleMessage(Connection *conn,std::string &message)
 {
     printf("EchoServer::HandleMessage() : thread is %ld.\n", syscall(SYS_gettid));
 
+    //把业务添加到线程池的任务队列中
+    threadpool_.addtask(std::bind(&EchoServer::OnMessage, this, conn, message));
+}
+
+//处理客户端的请求报文, 用于添加给线程池
+void EchoServer::OnMessage(Connection *conn, std::string &message)  
+{
     // 在这里，将经过若干步骤的运算。
     message="reply:"+message;          // 回显业务。
 
-    //报文格式 : 报文长度(头部) + 报文内容
-                
+    //报文格式 : 报文长度(头部) + 报文内容          
     conn->send(message.data(), message.size());   // 把临时缓冲区中的数据发送出去。
 }
 

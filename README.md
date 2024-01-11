@@ -30,6 +30,10 @@
 2) 在报文前面加上报文长度. 报文头部(4字节的整数) + 报文内容
 3) 报文之间用分隔符. http协议 \r\n\r\n
 
+# 为什么要增加工作线程
+1. Acceptor运行在主Reactor(主进程)中, Connection运行在从Reactor(进程池)中
+2. 一个从Reactor负责多个Connection, 每个Connection的工作内容包括IO和计算(处理客户端要求). IO不会阻塞事件循环, 但是, 计算可能会阻塞事件循环. 如果计算阻塞了事件循环, 那么在同一Reactor中的全部Connection将会被阻塞
+-> 解决方式 : 分配器Acceptor把Connection分配给从Reactor, 从Reactor运行在线程池中, 有很多个, 此时IO和计算都在从Reactor中, 此时可以把计算的过程分离出来, 把计算的工作交给工作线程(workthread), 让工作线程去处理业务, 从Reactor只负责IO, 以免从Reactor阻塞在计算上.
 
 # 项目结构
 基础类 

@@ -22,10 +22,12 @@ private:
 	std::condition_variable condition_;           // 任务队列同步的条件变量。
 	std::atomic_bool stop_;                        // 在析构函数中，把stop_的值设置为true，全部的线程将退出。
     //原子变量 stop_是一个标志位, 如果想使线程池停止工作, 把它设置为true 
+	//为了区分IO线程和工作线程
+	std::string threadtype_; 		//线程种类: "IO", "WORKS"
 
 public:
     // 在构造函数中将启动threadnum个线程，
-	ThreadPool(size_t threadnum);
+	ThreadPool(size_t threadnum, const std::string &threadtype_);
 
     // 把任务添加到队列中。
     void addtask(std::function<void()> task);   

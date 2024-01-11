@@ -1,6 +1,6 @@
 #include "ThreadPool.h"
 
-ThreadPool::ThreadPool(size_t threadnum):stop_(false) 
+ThreadPool::ThreadPool(size_t threadnum, const std::string &threadtype):stop_(false),  threadtype_(threadtype)
 {
     // 启动threadnum个线程，每个线程将阻塞在条件变量上。
 	for (size_t ii = 0; ii < threadnum; ii++)
@@ -9,7 +9,7 @@ ThreadPool::ThreadPool(size_t threadnum):stop_(false)
         /* [this]捕获当前类中的this指针, 让lambda表达式拥有和当前类成员函数同样的访问权限  */
 		threads_.emplace_back([this] 
         { //lambda函数内部
-            printf("In ThreadPool::ThreadPool, create thread(%ld).\n", syscall(SYS_gettid));     // 显示线程ID。
+            printf("In ThreadPool::ThreadPool, create %s thread(%ld).\n", threadtype_.c_str(), syscall(SYS_gettid));     // 显示线程ID 和 线程类型
 
 			while (stop_==false)
 			{
@@ -45,7 +45,7 @@ ThreadPool::ThreadPool(size_t threadnum):stop_(false)
 				}   // 锁作用域的结束。 ///////////////////////////////////
 
 
-                printf("thread is %ld.\n",syscall(SYS_gettid));
+                printf(" %s thread is %ld.\n",threadtype_.c_str(), syscall(SYS_gettid));
 				task();  // 执行任务。
 			}
 		});
