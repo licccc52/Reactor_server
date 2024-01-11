@@ -30,8 +30,12 @@ EventLoop::~EventLoop()   //在析构函数中销毁ep_
     delete ep_;
 }
 
+#include<unistd.h>
+#include<sys/syscall.h>
+
 void EventLoop::run() // 运行事件循环
 {
+    // printf("EventLoop::run() thread is %ld.\n", syscall(SYS_gettid));
     while(true){//事件循环
         //超时事件设置为10s
         std::vector<Channel*> channels = ep_->loop(10 * 1000); // 存放epoll_wait() 返回事件,等待监视的fd有事件发生
@@ -44,7 +48,7 @@ void EventLoop::run() // 运行事件循环
             // 如果infds>0，表示有事件发生的fd的数量。
             for (auto &ch : channels)       // 遍历epoll返回的数组evs。
             {
-                printf("IN EventLoop::run() -> EVENTLOOP\n");
+                printf("In EventLoop::run() -> EVENTLOOP\n");
                 ch->handleevent();
             }
         }

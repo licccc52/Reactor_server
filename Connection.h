@@ -19,7 +19,7 @@ private:
     Channel *clientchannel_;     //Acceptor对应的channel, 在构造函数中创建
     std::function<void(Connection*)> closecallback_; //关闭fd_的回调函数, 将回调TcpServer::closeConnection()
     std::function<void(Connection*)> errorcallback_; //连接错误的fd_的回调函数, 将回调TcpServer::errorConnection()
-    std::function<void(Connection*, std::string)> onmessagecallback_; //处理报文的回调函数, 将回调TcpServer::onmessage()
+    std::function<void(Connection*, std::string&)> onmessagecallback_; //处理报文的回调函数, 将回调TcpServer::onmessage()
     std::function<void(Connection*)> sendcompletecallback_; // connection发送信息完成之后, 回调此函数
 
     
@@ -47,7 +47,7 @@ public:
 
     void setclosecallback(std::function<void(Connection*)> fn);
     void seterrorcallback(std::function<void(Connection*)> fn);
-    void setonmessagecallback(std::function<void(Connection*, std::string)> fn); //设置处理报文的回调函数
+    void setonmessagecallback(std::function<void(Connection*, std::string&)> fn); //设置处理报文的回调函数
     void setsendcompletecallback(std::function<void(Connection*)> fn); //设置 当Connection类对象完成信息发送的时候回调的函数
 
     void send(const char *data, size_t size); //发送数据

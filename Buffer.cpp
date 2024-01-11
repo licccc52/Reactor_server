@@ -18,6 +18,12 @@ void Buffer::append(const char *data, size_t size)     //把数据追加到buf_�
     buf_.append(data, size);
 }
 
+void Buffer::appendwithhead(const char *data, size_t size)//把数据追加到buf_中, 附加报文头部
+{
+    buf_.append((char*)&size, 4);  //处理报文头
+    buf_.append(data, size);   //添加报文本体
+}
+
 // 从buf_的pos开始，删除nn个字节，pos从0开始。
 void Buffer::erase(size_t pos,size_t nn)                             
 {

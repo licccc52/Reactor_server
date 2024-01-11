@@ -16,3 +16,5 @@ int main(int argc,char *argv[])
     
     return 0;
 }
+//ps -ef|grep tcpepoll 先查进程ID
+//ps -T -p TID 显示线程id

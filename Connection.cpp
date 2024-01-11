@@ -77,7 +77,7 @@ void Connection::seterrorcallback(std::function<void(Connection*)> fn)
     errorcallback_ = fn;
 }
 
-void Connection::setonmessagecallback(std::function<void(Connection*, std::string)> fn)
+void Connection::setonmessagecallback(std::function<void(Connection*, std::string&)> fn)
 {
     onmessagecallback_ = fn;
 }
@@ -151,7 +151,7 @@ void Connection::onmessage()
 
 void Connection::send(const char *data, size_t size) //发送数据
 {
-    outputbuffer_.append(data, size); //把需要发送的数据保存到Connection的发送缓冲区中
+    outputbuffer_.appendwithhead(data, size); //把需要发送的数据保存到Connection的发送缓冲区中
     
     //注册写事件
     clientchannel_->enablewriting(); //注册写事件
