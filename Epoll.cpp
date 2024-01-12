@@ -68,6 +68,18 @@ void Epoll::updatechannel(Channel *ch){
         ch->setinepoll(); // 把channel的inepoll_成员设置为true
     }
 }
+
+void Epoll::removechannel(Channel * ch) // 从红黑树上删除channel
+{
+    if(ch->inepoll())//如果ch已经在红黑树上了
+    {
+        printf("Epoll::removechannel,  removechannel()\n");
+        if(epoll_ctl(epollfd_, EPOLL_CTL_DEL, ch->fd(), 0) == -1){
+            // perror("epoll_ctl() failed .\n");
+            exit(-1);
+        }
+    }
+}
 /*
 
 //运行epoll_wait() ,等待事件的发生, 已经发生的事件用vector容器返回

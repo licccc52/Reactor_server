@@ -1,31 +1,8 @@
 #include"Channel.h"
 #include<iostream>
-/*
-class Channel{
-private:
-    int fd_ = -1;//Channel拥有的fd, Channel和fd是一对一的关系
-    Epoll *ep_ = nullptr; //Channel对应的红黑树, Channel和Epoll是多对一的关系, 一个Channel只对应一个Epoll
-    bool inepoll = false; //Channel是否已经添加到epoll上, 如果未添加, 调用epoll_ctl()的时候用EPOLL_CTL_ADD, 否则使用EPOLL_CTL_MOD
-    uint32_t events_ = 0;   // fd_需要监视的事件, listenfd和clientfd需要监视的EPOLLIN, clientfd还可能需要监视EPOLLOUT
-    uint32_t revents_ = 0; // fd_已经发生的事件.
 
 
-public:
-    Channel(Epoll* ep, int fd); // 构造函数
-    ~Channel(); // 析构函数
-
-    int fd();   //返回fd_成员
-    void useet(); // 采用边缘触发
-    void enablereading(); // 让epoll_wait()监视fd_的读事件
-    void setinepoll(); // 把inepoll_成员的值设置为true
-    void setrevents(uint32_t ev); //设置revents_成员的值 为参数ev
-    bool inepoll(); //返回inepoll_成员
-    uint32_t events(); // 返回events_成员
-    uint32_t revents(); // 返回revents_成员
-};
-*/
-
-Channel::Channel(EventLoop* loop,int fd):loop_(loop),fd_(fd)      // 构造函数。
+Channel::Channel(const std::unique_ptr<EventLoop>& loop,int fd):loop_(loop),fd_(fd)      // 构造函数。
 {
     std::cout << __FILE__ << " , "<< __LINE__ << ",   Channel Constructor" << std::endl;
 }
@@ -70,10 +47,22 @@ void Channel::enablewriting() // 注册写事件
 }
 
 
-void Channel::disabelwriting() // 取消写事件
+void Channel::disablewriting() // 取消写事件
 {
     events_ &= ~EPOLLOUT;
     loop_ -> updatechannel(this);
+}
+
+void Channel::disableall()     //取消全部的事件
+{
+    events_ = 0;
+    loop_ -> updatechannel(this);
+}
+
+void Channel::remove()          //从事件循环中删除Channel
+{
+    disableall();
+    loop_->removechannel(this); //从红黑树上删除fd
 }
 
 
@@ -106,25 +95,20 @@ uint32_t Channel::revents() // 返回revents_成员
  { 
     if (revents_ & EPOLLRDHUP)    // 对方已关闭，有些系统检测不到，可以使用EPOLLIN，recv()返回0。
         {
-            printf("Channel::handleevent() EPOLLRDHUP\n");
-            // printf("1client(eventfd=%d) disconnected.\n",fd_);
-            // close(fd_);            // 关闭客户端的fd。
+
             closecallback_();   //回调std::bind(&Connection::closecallback,this)
         }                                //  普通数据  带外数据
         else if (revents_ & (EPOLLIN|EPOLLPRI))   // 接收缓冲区中有数据可以读。
         {
-            printf("Channel::handleevent() (EPOLLIN|EPOLLPRI)\n");
             readcallback_();     //回调std::bind(&Connection::onmessage,this)
         }
     else if (revents_ & EPOLLOUT)                  // 有数据需要写，暂时没有代码，以后再说。
     {
-            printf("Channel::handleevent() EPOLLOUT\n");
+
         writecallback_(); //回调std::bind(&Connection::writecallback,this)
     }
-    else                                                                   // 其它事件，都视为错误。
+    else               // 其它事件，都视为错误。
     {
-        // printf("3client(eventfd=%d) error.\n",fd_);
-        // close(fd_);            // 关闭客户端的fd。
         errorcallback_(); //回调std::bind(&Connection::errorcallback,this)
     }
  }

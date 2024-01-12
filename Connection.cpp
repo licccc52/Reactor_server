@@ -1,95 +1,80 @@
-#include"Connection.h"
-#include<iostream>
+#include "Connection.h"
 
-Connection::Connection(EventLoop *loop, Socket *clientsock):loop_(loop), clientsock_(clientsock)
+Connection::Connection(const std::unique_ptr<EventLoop>& loop,std::unique_ptr<Socket> clientsock)
+        :loop_(loop),clientsock_(std::move(clientsock)),disconnect_(false), clientchannel_(new Channel(loop_, clientsock_->fd()))
 {
-    if(loop == nullptr || clientsock == nullptr){
-        std::cout << "! ----- In Connection::Connection , loop or clientsock is null ---- ! " << std::endl;
-    }
-    // 为新客户端连接准备读事件，并添加到epoll中。
-    clientchannel_ = new Channel(loop_, clientsock_->fd());
+    // 为新客户端连接准备读事件，并添加到epoll中。 
     clientchannel_->setreadcallback(std::bind(&Connection::onmessage,this));
     clientchannel_->setclosecallback(std::bind(&Connection::closecallback,this));
     clientchannel_->seterrorcallback(std::bind(&Connection::errorcallback,this));
     clientchannel_->setwritecallback(std::bind(&Connection::writecallback,this));
-
-    clientchannel_->useet();                //客户端练上来的fd采用边缘触发
-    clientchannel_->enablereading();        //让epoll_wait()监视clientchannel的读事件
-    
+    // clientchannel_->useet();                 // 客户端连上来的fd采用边缘触发。
+    clientchannel_->enablereading();   // 让epoll_wait()监视clientchannel的读事件
 }
-
 
 Connection::~Connection()
 {
-    delete clientchannel_;
-    delete clientsock_;
+    // delete clientsock_;
+    // delete clientchannel_;
+    printf("Connection对象已析构。\n");
 }
 
-
-int Connection::fd() const              // 返回fd_成员。
+int Connection::fd() const                              // 返回客户端的fd。
 {
     return clientsock_->fd();
 }
 
-std::string Connection::ip() const     //返回fd_成员
+std::string Connection::ip() const                   // 返回客户端的ip。
 {
     return clientsock_->ip();
 }
 
-uint16_t Connection::port() const      //返回port_成员
+uint16_t Connection::port() const                  // 返回客户端的port。
 {
     return clientsock_->port();
 }
 
-
-void Connection::closecallback()       //TCP连接关闭(断开)的回调函数, 供Channel回调
+void Connection::closecallback()                    // TCP连接关闭（断开）的回调函数，供Channel回调。
 {
-    // std::cout << "回调函数 Connection::closecallback() " << std::endl;
-    // printf("client(eventfd=%d) error.\n", fd());
-    // close(fd());
-    closecallback_(this);  //回调std::bind(&TcpServer::closeconnection, this, std::placeholders::_1)
-}
-void Connection::errorcallback()       //TCP连接错误的回调函数, 共Channel回调
-{
-    // std::cout << "回调函数 Connection::errorcallback() " << std::endl;
-    // printf("client(eventfd=%d) error\n", fd());
-    // close(fd());
-    errorcallback_(this);//回调std::bind(&TcpServer::errorconnection, this, std::placeholders::_1)
+    disconnect_=true;
+    clientchannel_->remove();                         // 从事件循环中删除Channel。
+    closecallback_(shared_from_this());
 }
 
-void Connection::writecallback()       //处理写事件的回调函数, 供Channel回调
+void Connection::errorcallback()                    // TCP连接错误的回调函数，供Channel回调。
 {
-    int written = ::send(fd(), outputbuffer_.data(), outputbuffer_.size(), 0); //尝试把outputbuffer_中的数据全部发送出去
-    if(written > 0) outputbuffer_.erase(0, written);         //从outputbuffer_中删除已成功发送的字节数
-
-    //如果发送缓冲区中没有数据了, 表示数据已发送成功
-    if(outputbuffer_.size() == 0) clientchannel_->disabelwriting();
+    disconnect_=true;
+    clientchannel_->remove();                  // 从事件循环中删除Channel。
+    errorcallback_(shared_from_this());     // 回调TcpServer::errorconnection()。
 }
 
-
-//设置关闭fd_的回调函数
-void Connection::setclosecallback(std::function<void(Connection*)> fn)
+// 设置关闭fd_的回调函数。
+void Connection::setclosecallback(std::function<void(spConnection)> fn)    
 {
-    closecallback_ = fn;
-}
-void Connection::seterrorcallback(std::function<void(Connection*)> fn)
-{
-    errorcallback_ = fn;
+    closecallback_=fn;     // 回调TcpServer::closeconnection()。
 }
 
-void Connection::setonmessagecallback(std::function<void(Connection*, std::string&)> fn)
+// 设置fd_发生了错误的回调函数。
+void Connection::seterrorcallback(std::function<void(spConnection)> fn)    
 {
-    onmessagecallback_ = fn;
+    errorcallback_=fn;     // 回调TcpServer::errorconnection()。
 }
 
-void Connection::setsendcompletecallback(std::function<void(Connection*)> fn) //设置 当Connection类对象完成信息发送的时候回调的函数
+// 设置处理报文的回调函数。
+void Connection::setonmessagecallback(std::function<void(spConnection,std::string&)> fn)    
 {
-    sendcompletecallback_ = fn;
+    onmessagecallback_=fn;       // 回调TcpServer::onmessage()。
 }
 
-void Connection::onmessage() 
+// 发送数据完成后的回调函数。
+void Connection::setsendcompletecallback(std::function<void(spConnection)> fn)    
 {
-    ////////////////////////////////////////////////////////////////////////
+    sendcompletecallback_=fn;
+}
+
+// 处理对端发送过来的消息。
+void Connection::onmessage()
+{
     char buffer[1024];
     while (true)             // 由于使用非阻塞IO，一次读取buffer大小数据，直到全部的数据读取完毕。
     {    
@@ -97,10 +82,7 @@ void Connection::onmessage()
         ssize_t nread = read(fd(), buffer, sizeof(buffer));
         if (nread > 0)      // 成功的读取到了数据。
         {
-            // 把接收到的报文内容原封不动的发回去。
-            // printf("recv(eventfd=%d):%s\n",fd(),buffer);
-            // send(fd(),buffer,strlen(buffer),0);
-            inputbuffer_.append(buffer, nread);  // 把读取的数据追加到接收缓冲区中
+            inputbuffer_.append(buffer,nread);      // 把读取的数据追加到接收缓冲区中。
         } 
         else if (nread == -1 && errno == EINTR) // 读取数据的时候被信号中断，继续读取。
         {  
@@ -108,8 +90,8 @@ void Connection::onmessage()
         } 
         else if (nread == -1 && ((errno == EAGAIN) || (errno == EWOULDBLOCK))) // 全部的数据已读取完毕。
         {
-            // printf("recv(eventfd=%d):%s\n",fd(), inputbuffer_.data());
-            while(true){
+            while (true)             // 从接收缓冲区中拆分出客户端的请求消息。
+            {
                 //////////////////////////////////////////////////////////////
                 // 可以把以下代码封装在Buffer类中，还可以支持固定长度、指定报文长度和分隔符等多种格式。
                 int len;
@@ -123,37 +105,38 @@ void Connection::onmessage()
 
                 printf("message (eventfd=%d):%s\n",fd(),message.c_str());
 
-                /*
-                // 在这里，将经过若干步骤的运算。
-                message="reply:"+message;
-                
-                len=message.size();                        // 计算回应报文的大小。
-                std::string tmpbuf((char*)&len,4);  // 把报文头部填充到回应报文中。
-                tmpbuf.append(message);             // 把报文内容填充到回应报文中。
-                
-                send(fd(),tmpbuf.data(),tmpbuf.size(),0);   // 把临时缓冲区中的数据直接send()出去。
-                */
-
-               //此处的回调函数定义在TcpServer中, onmessage
-               //调用此函数处理客户端发送来的报文, 计算回送的报文
-                onmessagecallback_(this,message);       // 回调TcpServer::onmessage()。
+                onmessagecallback_(shared_from_this(),message);       // 回调TcpServer::onmessage()处理客户端的请求消息。
             }
             break;
         } 
         else if (nread == 0)  // 客户端连接已断开。
         {  
-            closecallback();
+            // clientchannel_->remove();                // 从事件循环中删除Channel。
+            closecallback();                                  // 回调TcpServer::closecallback()。
             break;
         }
     }
 }
 
-
-void Connection::send(const char *data, size_t size) //发送数据
+// 发送数据。
+void Connection::send(const char *data,size_t size)        
 {
-    outputbuffer_.appendwithhead(data, size); //把需要发送的数据保存到Connection的发送缓冲区中
-    
-    //注册写事件
-    clientchannel_->enablewriting(); //注册写事件
-    sendcompletecallback_(this);
+    if (disconnect_==true) {  printf("客户端连接已断开了，send()直接返回。\n"); return;}
+
+    outputbuffer_.appendwithhead(data,size);    // 把需要发送的数据保存到Connection的发送缓冲区中。
+    clientchannel_->enablewriting();    // 注册写事件。
+}
+
+// 处理写事件的回调函数，供Channel回调。
+void Connection::writecallback()                   
+{
+    int writen=::send(fd(),outputbuffer_.data(),outputbuffer_.size(),0);    // 尝试把outputbuffer_中的数据全部发送出去。
+    if (writen>0) outputbuffer_.erase(0,writen);                                        // 从outputbuffer_中删除已成功发送的字节数。
+
+    // 如果发送缓冲区中没有数据了，表示数据已发送完成，不再关注写事件。
+    if (outputbuffer_.size()==0) 
+    {
+        clientchannel_->disablewriting();        
+        sendcompletecallback_(shared_from_this());
+    }
 }

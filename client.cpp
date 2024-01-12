@@ -65,6 +65,6 @@ int main(int argc, char *argv[])//
         printf("recv:%s\n",buf);
     }
 
-    sleep(100);
+    sleep(1);
     // printf("结束时间：%d\n",time(0));
 } 

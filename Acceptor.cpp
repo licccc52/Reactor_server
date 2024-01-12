@@ -1,33 +1,34 @@
 #include"Acceptor.h"
 #include<iostream>
 
-Acceptor::Acceptor(EventLoop *loop, const std::string &ip, const uint16_t port):loop_(loop)
+Acceptor::Acceptor(const std::unique_ptr<EventLoop>& loop, const std::string &ip, const uint16_t port)
+            :loop_(loop), servsock_(createnonblocking()), acceptchannel_(loop_,servsock_.fd())
 {
     if(loop == nullptr){
         std::cout << "! ----- In Acceptor::Acceptor , loop is null ---- ! " << std::endl;
     }
     std::cout << __FILE__ << " , "<< __LINE__ << ",   Acceptor Constructor" << std::endl;
-    servsock_ = new Socket(createnonblocking());
+    // servsock_ = new Socket(createnonblocking());
     InetAddress servaddr(ip, port);
-    servsock_->setkeepalive(true);
-    servsock_->setreuseaddr(true);
-    servsock_->settcpnodelay(true);
-    servsock_->setreuseport(true);
+    servsock_.setkeepalive(true);
+    servsock_.setreuseaddr(true);
+    servsock_.settcpnodelay(true);
+    servsock_.setreuseport(true);
 
-    servsock_->bind(servaddr);
-    servsock_->listen();
+    servsock_.bind(servaddr);
+    servsock_.listen();
     
-    acceptchannel_=new Channel(loop_,servsock_->fd());
-    acceptchannel_->setreadcallback(std::bind(&Acceptor::newconnection, this));
-    acceptchannel_->enablereading(); //让epoll_wait()监视servchannel的读事件
+    // acceptchannel_=new Channel(loop_,servsock_.fd());
+    acceptchannel_.setreadcallback(std::bind(&Acceptor::newconnection, this));
+    acceptchannel_.enablereading(); //让epoll_wait()监视servchannel的读事件
 }
 
 
 
 Acceptor::~Acceptor()
 {
-    delete servsock_;
-    delete acceptchannel_;
+    // delete servsock_;
+    // delete acceptchannel_;
 }
 
 
@@ -36,7 +37,7 @@ void Acceptor::newconnection()
 {
     ////////////////////////////////////////////////////////////////////////                    
     InetAddress clientaddr;// 注意，clientsock只能new出来，不能在栈上，否则析构函数会关闭fd。
-    Socket *clientsock = new Socket(servsock_->accept(clientaddr));
+    std::unique_ptr<Socket> clientsock(new Socket(servsock_.accept(clientaddr))); 
 
 
     /*
@@ -52,12 +53,12 @@ void Acceptor::newconnection()
     //Connection *conn = new Connection(loop_, clientsock);
     //给客户端连接的socket设置ip和端口号
     clientsock->setipport(clientaddr.ip(), clientaddr.port());
-    newconnectioncb_(clientsock);
+    newconnectioncb_(std::move(clientsock));
     
 }
 
 
-void Acceptor::setnewconnection(std::function<void(Socket*)> fn)
+void Acceptor::setnewconnection(std::function<void(std::unique_ptr<Socket>)> fn)
 {
     newconnectioncb_ = fn;
 }

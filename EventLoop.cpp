@@ -27,7 +27,7 @@ EventLoop::EventLoop() :ep_(new Epoll)    //在析构函数中创建Epoll对象e
 
 EventLoop::~EventLoop()   //在析构函数中销毁ep_
 {
-    delete ep_;
+    // delete ep_;
 }
 
 #include<unistd.h>
@@ -56,15 +56,17 @@ void EventLoop::run() // 运行事件循环
     
 }
 
-Epoll* EventLoop::ep(){
-    return ep_;
-}
 
 // 把channel添加/更新到红黑树上，channel中有fd，也有需要监视的事件。
 void EventLoop::updatechannel(Channel *ch)                        
 {
     ep_->updatechannel(ch);
     
+}
+
+void EventLoop::removechannel(Channel *ch)                        // 从红黑树上删除Channel
+{
+    ep_->removechannel(ch);
 }
 
 void EventLoop::setepolltimeoutcallback(std::function<void(EventLoop*)> fn)  //设置epoll_wait()超时的回调函数

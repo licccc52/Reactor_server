@@ -35,6 +35,10 @@
 2. 一个从Reactor负责多个Connection, 每个Connection的工作内容包括IO和计算(处理客户端要求). IO不会阻塞事件循环, 但是, 计算可能会阻塞事件循环. 如果计算阻塞了事件循环, 那么在同一Reactor中的全部Connection将会被阻塞
 -> 解决方式 : 分配器Acceptor把Connection分配给从Reactor, 从Reactor运行在线程池中, 有很多个, 此时IO和计算都在从Reactor中, 此时可以把计算的过程分离出来, 把计算的工作交给工作线程(workthread), 让工作线程去处理业务, 从Reactor只负责IO, 以免从Reactor阻塞在计算上.
 
+# 多线程资源管理Connection对象 -> shared_ptr
+共享指针(shared_ptr), 共享指针会记录有多少个共享指针指向同一个物体, 当这个物体数量将为0的时候, 程序就会自动释放这个物体, 省去程序员手动delete的环节
+PS: 如果一块资源同时有裸指针和共享指针指向它的时候, 那么当所有的共享指针都被摧毁, 但是裸指针仍然存在的时候, 这个裸指针底下的子隐患仍然会被释放, 此时再用裸指针去访问那块资源就变成了未定义的行为,会导致很严重的后果.
+
 # 项目结构
 基础类 
 Socket : fd_ ,  ip_ , port_ 
@@ -50,4 +54,6 @@ Connection::writecallback()
 EventLoop::run() // 运行事件循环, std::vector<Channel*> channels = ep_->loop(), Epoll::loop()//把有时间发生的fd添加到vector<Channel*>; // 存放epoll_wait() 返回事件, // 遍历epoll返回的数组evs, ch->handleevent();遍历事件 -> Channel::handleevent() -> Connection::writecallback()"只有Connection有发送和读取缓冲区" -> ::send(), 然后清空缓冲区,注销写事件,clientchannel_->disabelwriting();
 
 # mutex不可以拷贝, 可以将mutex改为引用传递参数
+### std::bind( , , ), bind函数
+第一个函数是成员函数的地址, 第二个参数是对象的地址(需要普通指针)
 ![回调过程](/home/lichuang/Reactor_server/recall_path.png)
