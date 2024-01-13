@@ -45,7 +45,7 @@ ThreadPool::ThreadPool(size_t threadnum, const std::string &threadtype):stop_(fa
 				}   // 锁作用域的结束。 ///////////////////////////////////
 
 
-                printf(" %s thread is %ld.\n",threadtype_.c_str(), syscall(SYS_gettid));
+                printf("ThreadPool::ThreadPool %s thread %ld execute task.\n",threadtype_.c_str(), syscall(SYS_gettid));
 				task();  // 执行任务。
 			}
 		});
@@ -86,37 +86,7 @@ ThreadPool::~ThreadPool()
         th.join();
 }
 
-// void show(int no, const std::string &name)
-// {
-
-//     printf("小哥哥们好，我是第%d号超级女生%s,",no,name.c_str());
-//     printf("thread is %ld.\n",syscall(SYS_gettid));
-// }
-
-// void test()
-// {
-//     printf("我有一只小小鸟, ");
-//     printf("thread is %ld.\n",syscall(SYS_gettid));
-// }
-
-// int main()
-// {
-//     ThreadPool threadpool(3);
-    
-//     sleep(2);
-
-//     std::cout << std::endl << std::endl;
-
-//     std::string name="西施";
-//     threadpool.addtask(std::bind(show,8,name));
-//     sleep(1);
-
-//     threadpool.addtask(std::bind(test));
-//     sleep(1);
-
-    // threadpool.addtask(std::bind([]{ printf("我是一只傻傻鸟。\n");}));
-    // sleep(1);
-    
-// }
-
-// g++ -o test ThreadPool.cpp -lpthread
+size_t ThreadPool::size()
+{
+    return threads_.size();
+}

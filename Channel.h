@@ -21,7 +21,7 @@ class Channel{
 private:
     int fd_ = -1;           //Channel拥有的fd, Channel和fd是一对一的关系
     // Epoll *ep_ = nullptr;   //Channel对应的红黑树, Channel和Epoll是多对一的关系, 一个Channel只对应一个Epoll
-    const std::unique_ptr<EventLoop>& loop_;
+    EventLoop *loop_;
     bool inepoll_ = false;  //Channel是否已经添加到epoll上, 如果未添加, 调用epoll_ctl()的时候用EPOLL_CTL_ADD, 否则使用EPOLL_CTL_MOD
     uint32_t events_ = 0;   // fd_需要监视的事件, listenfd和clientfd需要监视的EPOLLIN, clientfd还可能需要监视EPOLLOUT
     uint32_t revents_ = 0;  // fd_已经发生的事件.
@@ -31,7 +31,7 @@ private:
     std::function<void()> writecallback_ ; // fd_写事件的回调函数, 将回调Connection::writecallback()
 
 public:
-    Channel(const std::unique_ptr<EventLoop>& loop, int fd_); // 构造函数
+    Channel(EventLoop *loop, int fd_); // 构造函数
     ~Channel(); // 析构函数
 
     int fd();   //返回fd_成员

@@ -20,6 +20,11 @@ void Buffer::append(const char *data, size_t size)     //把数据追加到buf_�
 
 void Buffer::appendwithhead(const char *data, size_t size)//把数据追加到buf_中, 附加报文头部
 {
+    if (data != nullptr && data[0] != '\0') {
+        // printf("Buffer::appendwithhead data的地址: %p, data: %s\n", static_cast<const void*>(data), data);
+    } else {
+        printf("Buffer::appendwithhead data的地址: %p, data: (empty)\n", static_cast<const void*>(data));
+    }
     buf_.append((char*)&size, 4);  //处理报文头
     buf_.append(data, size);   //添加报文本体
 }

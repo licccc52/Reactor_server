@@ -7,6 +7,7 @@
 #include "Buffer.h"
 #include <memory> //使用智能指针
 #include <atomic>
+#include <sys/syscall.h>
 
 class Connection;
 using spConnection=std::shared_ptr<Connection>; //智能指针别名
@@ -14,7 +15,7 @@ using spConnection=std::shared_ptr<Connection>; //智能指针别名
 class Connection:public std::enable_shared_from_this<Connection> // 继承此模板类, 可以让connection使用智能指针
 {
 private:
-    const std::unique_ptr<EventLoop>& loop_;               // Connection对应的事件循环，在构造函数中传入。 
+    EventLoop *loop_;               // Connection对应的事件循环，在构造函数中传入。 
     std::unique_ptr<Socket> clientsock_;             // 与客户端通讯的Socket。
     std::unique_ptr<Channel> clientchannel_;     // Connection对应的channel，只能使用堆内存, 因为Server端可能会有几十万个connection 
     Buffer inputbuffer_;             // 接收缓冲区。
@@ -27,7 +28,7 @@ private:
     std::function<void(spConnection)> sendcompletecallback_;               // 发送数据完成后的回调函数，将回调TcpServer::sendcomplete()。
 
 public:
-    Connection(const std::unique_ptr<EventLoop>& loop,std::unique_ptr<Socket> clientsock);
+    Connection(EventLoop *loop,std::unique_ptr<Socket> clientsock);
     ~Connection();
 
     int fd() const;                              // 返回客户端的fd。
@@ -44,5 +45,8 @@ public:
     void setonmessagecallback(std::function<void(spConnection,std::string&)> fn);    // 设置处理报文的回调函数。
     void setsendcompletecallback(std::function<void(spConnection)> fn);    // 发送数据完成后的回调函数。
 
-    void send(const char *data,size_t size);        // 发送数据。
+    //发送数据, 不管在任何线程中, 都是调用此函数发送数据
+    void send(const char *data,size_t size);        
+    //发送数据, 如果当前线程是IO线程, 直接调用此函数, 如果是工作线程, 将把此函数传给IO线程
+    void sendinloop(const char *data,size_t size);
 };

@@ -1,6 +1,6 @@
 #include "Connection.h"
 
-Connection::Connection(const std::unique_ptr<EventLoop>& loop,std::unique_ptr<Socket> clientsock)
+Connection::Connection(EventLoop *loop,std::unique_ptr<Socket> clientsock)
         :loop_(loop),clientsock_(std::move(clientsock)),disconnect_(false), clientchannel_(new Channel(loop_, clientsock_->fd()))
 {
     // 为新客户端连接准备读事件，并添加到epoll中。 
@@ -16,7 +16,7 @@ Connection::~Connection()
 {
     // delete clientsock_;
     // delete clientchannel_;
-    printf("Connection对象已析构。\n");
+    // printf("Connection对象已析构。\n");
 }
 
 int Connection::fd() const                              // 返回客户端的fd。
@@ -118,20 +118,47 @@ void Connection::onmessage()
     }
 }
 
-// 发送数据。
-void Connection::send(const char *data,size_t size)        
+//发送数据, 不管在任何线程中, 都是调用此函数发送数据
+void Connection::send(const char *data,size_t size)    //在工作线程中执行  
 {
-    if (disconnect_==true) {  printf("客户端连接已断开了，send()直接返回。\n"); return;}
+    if (disconnect_==true) {  printf("客户端连接已断开了, send()直接返回。\n"); return;}
 
+    if(loop_->isinloopthread()){//判断当前线程是否为事件循环的线程(IO线程)
+        //如果当前线程是IO线程, 直接执行发送数据的操作.
+        printf("Connection::send() 在事件循环的线程中。\n");
+        sendinloop(data, size);
+    }
+    else{
+        //如果当前线程不是IO线程, 把发送数据的操作交给IO线程去执行
+        //实现 : 在事件循环中创建一个任务队列, 在Connection的send()函数中把sendinloop()函数放到任务队列中去, 
+        //      然后用eventfd唤醒事件循环(IO线程), 在IO线程中执行发送数据的操作
+        // printf("Connection::send() data: %s\n", data);
+        char* dataCopy = strdup(data); //在此处不赋值的话, data在后面会变成空指针, 在sendinloop()函数中释放
+        loop_->queueinloop(std::bind(&Connection::sendinloop, this, dataCopy, size)); //在queueinloop中会唤醒EventLoop
+    }
+    
+}
+
+//工作线程处理完业务之后, 如果要发送数据, 可以把发送数据的操作交给IO线程, 
+//这样的话就不需要对connection的发送缓冲区加锁了
+
+//发送数据, 如果当前线程是IO线程, 直接调用此函数, 如果是工作线程, 将把此函数传给IO线程
+void Connection::sendinloop(const char *data,size_t size){
+    if (data != nullptr && data[0] != '\0') {
+        // printf("Connection::sendinloop() data的地址: %p, data: %s\n", static_cast<const void*>(data), data);
+    } else {
+        printf("Connection::sendinloop() data的地址: %p, data: (empty)\n", static_cast<const void*>(data));
+    }
     outputbuffer_.appendwithhead(data,size);    // 把需要发送的数据保存到Connection的发送缓冲区中。
     clientchannel_->enablewriting();    // 注册写事件。
+    free((void*)data); //释放dataCopy
 }
 
 // 处理写事件的回调函数，供Channel回调。
-void Connection::writecallback()                   
+void Connection::writecallback()         //在IO线程中执行         
 {
     int writen=::send(fd(),outputbuffer_.data(),outputbuffer_.size(),0);    // 尝试把outputbuffer_中的数据全部发送出去。
-    if (writen>0) outputbuffer_.erase(0,writen);                                        // 从outputbuffer_中删除已成功发送的字节数。
+    if (writen>0) outputbuffer_.erase(0,writen);                          // 从outputbuffer_中删除已成功发送的字节数。
 
     // 如果发送缓冲区中没有数据了，表示数据已发送完成，不再关注写事件。
     if (outputbuffer_.size()==0) 

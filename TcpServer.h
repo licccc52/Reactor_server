@@ -18,12 +18,14 @@ private:
     int threadnum_;                                               // 线程池的大小，即从事件循环的个数。
     ThreadPool threadpool_;                                 // 线程池。
     std::map<int,spConnection>  conns_;            // 一个TcpServer有多个Connection对象，存放在map容器中。
+
     std::function<void(spConnection)> newconnectioncb_;          // 回调EchoServer::HandleNewConnection()。
     std::function<void(spConnection)> closeconnectioncb_;        // 回调EchoServer::HandleClose()。
     std::function<void(spConnection)> errorconnectioncb_;         // 回调EchoServer::HandleError()。
     std::function<void(spConnection,std::string &message)> onmessagecb_;        // 回调EchoServer::HandleMessage()。
     std::function<void(spConnection)> sendcompletecb_;            // 回调EchoServer::HandleSendComplete()。
     std::function<void(EventLoop*)>  timeoutcb_;                       // 回调EchoServer::HandleTimeOut()。
+    
 public:
     TcpServer(const std::string &ip,const uint16_t port,int threadnum=3);
     ~TcpServer();

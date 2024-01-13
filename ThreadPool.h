@@ -34,4 +34,7 @@ public:
 
     // 在析构函数中将停止线程。
 	~ThreadPool();
+
+	//获取线程池的大小
+	size_t size();
 };

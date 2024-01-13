@@ -1,7 +1,7 @@
 #include"Acceptor.h"
 #include<iostream>
 
-Acceptor::Acceptor(const std::unique_ptr<EventLoop>& loop, const std::string &ip, const uint16_t port)
+Acceptor::Acceptor(EventLoop *loop, const std::string &ip, const uint16_t port)
             :loop_(loop), servsock_(createnonblocking()), acceptchannel_(loop_,servsock_.fd())
 {
     if(loop == nullptr){
@@ -53,7 +53,7 @@ void Acceptor::newconnection()
     //Connection *conn = new Connection(loop_, clientsock);
     //给客户端连接的socket设置ip和端口号
     clientsock->setipport(clientaddr.ip(), clientaddr.port());
-    newconnectioncb_(std::move(clientsock));
+    newconnectioncb_(std::move(clientsock));  //TcpServer::newconnection
     
 }
 

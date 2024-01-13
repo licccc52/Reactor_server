@@ -1,7 +1,7 @@
 #include "TcpServer.h"
 
 TcpServer::TcpServer(const std::string &ip,const uint16_t port,int threadnum)
-                 :threadnum_(threadnum),mainloop_(new EventLoop), acceptor_(mainloop_,ip,port),threadpool_(threadnum_,"IO")
+                 :threadnum_(threadnum),mainloop_(new EventLoop), acceptor_(mainloop_.get(),ip,port), threadpool_(threadnum_,"IO")
 {
     // mainloop_=new EventLoop;       // 创建主事件循环。
     mainloop_->setepolltimeoutcallback(std::bind(&TcpServer::epolltimeout,this,std::placeholders::_1));   // 设置timeout超时的回调函数。
@@ -50,7 +50,8 @@ void TcpServer::start_run()
 void TcpServer::newconnection(std::unique_ptr<Socket> clientsock)
 {
     // 把新建的conn分配给从事件循环。
-    spConnection conn(new Connection(subloops_[clientsock->fd()%threadnum_],std::move(clientsock)));   
+    // using spConnection=std::shared_ptr<Connection>; //智能指针别名
+    spConnection conn(new Connection(subloops_[clientsock->fd()%threadnum_].get(),std::move(clientsock)));   
     conn->setclosecallback(std::bind(&TcpServer::closeconnection,this,std::placeholders::_1));
     conn->seterrorcallback(std::bind(&TcpServer::errorconnection,this,std::placeholders::_1));
     conn->setonmessagecallback(std::bind(&TcpServer::onmessage,this,std::placeholders::_1,std::placeholders::_2));

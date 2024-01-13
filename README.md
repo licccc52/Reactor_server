@@ -33,25 +33,32 @@
 # 为什么要增加工作线程
 1. Acceptor运行在主Reactor(主进程)中, Connection运行在从Reactor(进程池)中
 2. 一个从Reactor负责多个Connection, 每个Connection的工作内容包括IO和计算(处理客户端要求). IO不会阻塞事件循环, 但是, 计算可能会阻塞事件循环. 如果计算阻塞了事件循环, 那么在同一Reactor中的全部Connection将会被阻塞
--> 解决方式 : 分配器Acceptor把Connection分配给从Reactor, 从Reactor运行在线程池中, 有很多个, 此时IO和计算都在从Reactor中, 此时可以把计算的过程分离出来, 把计算的工作交给工作线程(workthread), 让工作线程去处理业务, 从Reactor只负责IO, 以免从Reactor阻塞在计算上.
+ -> 解决方式 : 分配器Acceptor把Connection分配给从Reactor, 从Reactor运行在线程池中, 有很多个, 此时IO和计算都在从Reactor中, 此时可以把计算的过程分离出来, 把计算的工作交给工作线程(workthread), 让工作线程去处理业务, 从Reactor只负责IO, 以免从Reactor阻塞在计算上.
 
 # 多线程资源管理Connection对象 -> shared_ptr
-共享指针(shared_ptr), 共享指针会记录有多少个共享指针指向同一个物体, 当这个物体数量将为0的时候, 程序就会自动释放这个物体, 省去程序员手动delete的环节
-PS: 如果一块资源同时有裸指针和共享指针指向它的时候, 那么当所有的共享指针都被摧毁, 但是裸指针仍然存在的时候, 这个裸指针底下的子隐患仍然会被释放, 此时再用裸指针去访问那块资源就变成了未定义的行为,会导致很严重的后果.
+ 共享指针(shared_ptr), 共享指针会记录有多少个共享指针指向同一个物体, 当这个物体数量将为0的时候, 程序就会自动释放这个物体, 省去程序员手动delete的环节
+ PS: 如果一块资源同时有裸指针和共享指针指向它的时候, 那么当所有的共享指针都被摧毁, 但是裸指针仍然存在的时候, 这个裸指针底下的子隐患仍然会被释放, 此时再用裸指针去访问那块资源就变成了未定义的行为,会导致很严重的后果.
 
 # 项目结构
-基础类 
-Socket : fd_ ,  ip_ , port_ 
-Channel : fd_ , EventLoop*, 通过回调函数控制读写事件的执行, 处理读写epoll_wait()返回之后, 控制事件的执行
-TcpServer 的构造函数创建 Acceptor实例, setnewconnection (TcpServer::newconnection),   在newconnection中accept(), 创建connection, 设置conn实例的回调函数, 将新创建的conn实例加入到 TcpServer::map中,
-Acceptor 创建的时候 执行socket(), bind(), listne(); 
+ 基础类 
+ Socket : fd_ ,  ip_ , port_ 
+ Channel : fd_ , EventLoop*, 通过回调函数控制读写事件的执行, 处理读写epoll_wait()返回之后, 控制事件的执行
+ TcpServer 的构造函数创建 Acceptor实例, setnewconnection (TcpServer::newconnection),   在newconnection中accept(), 创建connection, 设置conn实例的回调函数, 将新创建的conn实例加入到 TcpServer::map中,
+ Acceptor 创建的时候 执行socket(), bind(), listne(); 
 
-Connection::onmessage() 读事件完成 -> TcpServer:: onmessage(), 准备回送的信息, 添加报文头部 -> Connection::send(), 添加数据到outputbuffer_, 注册写事件, 把注册后的event_添加到epoll的红黑树上
-Connection::writecallback()
+ Connection::onmessage() 读事件完成 -> TcpServer:: onmessage(), 准备回送的信息, 添加报文头部 -> Connection::send(), 添加数据到outputbuffer_, 注册写事件, 把注册后的event_添加到epoll的红黑树上
+ Connection::writecallback()
 
 
 使用outputbuffer_缓冲区发送数据, 
-EventLoop::run() // 运行事件循环, std::vector<Channel*> channels = ep_->loop(), Epoll::loop()//把有时间发生的fd添加到vector<Channel*>; // 存放epoll_wait() 返回事件, // 遍历epoll返回的数组evs, ch->handleevent();遍历事件 -> Channel::handleevent() -> Connection::writecallback()"只有Connection有发送和读取缓冲区" -> ::send(), 然后清空缓冲区,注销写事件,clientchannel_->disabelwriting();
+ server.Start() -> tcpserver_.start_run() -> mainloop_->run(); EventLoop::run() // 运行事件循环, std::vector<Channel*> channels = ep_->loop(), Epoll::loop()//把有时间发生的fd添加到vector<Channel*>; // 存放epoll_wait() 返回事件, // 遍历epoll返回的数组evs, ch->handleevent();遍历事件 -> Channel::handleevent() -> Connection::writecallback()"只有Connection有发送和读取缓冲区" -> ::send(), 然后清空缓冲区,注销写事件,clientchannel_->disabelwriting();
+
+
+# 程序主体结构
+ 主事件循环负责客户的连接, 然后把客户端的连接分配给从事件循环, 从事件循环运行在线程池中, 称为IO线程, IO线程接收到客户端的请求报文之后, 把它交给工作线程去计算, 工作线程计算完之后, 把响应报文直接发送给客户端
+ 
+ # 异步唤醒循环
+ 目标 : 在工作线程中把发送数据的操作通过队列交给事件循环, 然后唤醒事件循环, 让事件循环执行发送的任务
 
 # mutex不可以拷贝, 可以将mutex改为引用传递参数
 ### std::bind( , , ), bind函数

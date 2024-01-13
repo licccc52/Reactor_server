@@ -49,13 +49,12 @@ void EchoServer::HandleNewConnection(spConnection conn)
 {
     printf("EchoServer::HandleNewConnection() : thread is %ld.\n", syscall(SYS_gettid));
     
-    // 根据业务的需求，在这里可以增加其它的代码。
 }
 
 // 关闭客户端的连接，在TcpServer类中回调此函数。 
 void EchoServer::HandleClose(spConnection conn)  
 {
-    std::cout << "EchoServer conn closed." << std::endl;
+    std::cout << "EchoServer conn closed, "<<" thread is " <<  syscall(SYS_gettid) << std::endl;
     // 根据业务的需求，在这里可以增加其它的代码。
 }
 
@@ -70,26 +69,34 @@ void EchoServer::HandleError(spConnection conn)
 // 处理客户端的请求报文，在TcpServer类中回调此函数。
 void EchoServer::HandleMessage(spConnection conn,std::string &message)     
 {
-    printf("EchoServer::HandleMessage() : thread is %ld.\n", syscall(SYS_gettid));
+    // printf("EchoServer::HandleMessage() : thread is %ld.\n", syscall(SYS_gettid));
 
+    if(threadpool_.size() == 0){
+        //没有工作线程, 直接调用处理客户端请求报文的函数, (IO线程)
+        message = "IO thread "+ message;
+        OnMessage(conn, message);
+    }
+    else{
     //把业务添加到线程池的任务队列中
-    threadpool_.addtask(std::bind(&EchoServer::OnMessage, this, conn, message));
+        message = "WORK thread "+ message;
+        threadpool_.addtask(std::bind(&EchoServer::OnMessage, this, conn, message)); //工作线程
+    }
 }
 
 //处理客户端的请求报文, 用于添加给线程池
 void EchoServer::OnMessage(spConnection conn, std::string &message)  
 {
     // 在这里，将经过若干步骤的运算。
-    message="reply:"+message;          // 回显业务。
-
+    message="reply:"+ message;          // 回显业务。
     //报文格式 : 报文长度(头部) + 报文内容          
     conn->send(message.data(), message.size());   // 把临时缓冲区中的数据发送出去。
+    //send()函数注册一个写事件
 }
 
 // 数据发送完成后，在TcpServer类中回调此函数。
 void EchoServer::HandleSendComplete(spConnection conn)     
 {
-    std::cout << "Message send complete." << std::endl;
+    // std::cout << "EchoServer::HandleSendComplete,  Message send complete : "<<" thread is " <<  syscall(SYS_gettid) << std::endl;
 
     // 根据业务的需求，在这里可以增加其它的代码。
 }
