@@ -5,10 +5,13 @@
 #include "Channel.h"
 #include "EventLoop.h"
 #include "Buffer.h"
+#include "Timestamp.h" 
 #include <memory> //使用智能指针
 #include <atomic>
 #include <sys/syscall.h>
 
+class EventLoop;
+class Channel;
 class Connection;
 using spConnection=std::shared_ptr<Connection>; //智能指针别名
 
@@ -22,10 +25,11 @@ private:
     Buffer outputbuffer_;          // 发送缓冲区。
     std::atomic_bool disconnect_;      // 客户端连接是否已断开，如果已断开，则设置为true。
 
-    std::function<void(spConnection)> closecallback_;                   // 关闭fd_的回调函数，将回调TcpServer::closeconnection()。
-    std::function<void(spConnection)> errorcallback_;                   // fd_发生了错误的回调函数，将回调TcpServer::errorconnection()。
-    std::function<void(spConnection,std::string&)> onmessagecallback_;   // 处理报文的回调函数，将回调TcpServer::onmessage()。
-    std::function<void(spConnection)> sendcompletecallback_;               // 发送数据完成后的回调函数，将回调TcpServer::sendcomplete()。
+    std::function<void(spConnection)> closecallback_;                   // 关闭fd_的回调函数，将回调TcpServer::closeconnection()
+    std::function<void(spConnection)> errorcallback_;                   // fd_发生了错误的回调函数，将回调TcpServer::errorconnection()
+    std::function<void(spConnection,std::string&)> onmessagecallback_;   // 处理报文的回调函数，将回调TcpServer::onmessage()
+    std::function<void(spConnection)> sendcompletecallback_;               // 发送数据完成后的回调函数，将回调TcpServer::sendcomplete()
+    Timestamp lasttime_; //创建时间戳, 创建Connectino对象时为当前时间, 每接收到一个报文, 把时间戳更新为当前时间
 
 public:
     Connection(EventLoop *loop,std::unique_ptr<Socket> clientsock);
@@ -49,4 +53,6 @@ public:
     void send(const char *data,size_t size);        
     //发送数据, 如果当前线程是IO线程, 直接调用此函数, 如果是工作线程, 将把此函数传给IO线程
     void sendinloop(const char *data,size_t size);
+
+    bool timeout(time_t now, int val); //判断TCP连接是否超时(空闲太久)
 };

@@ -25,5 +25,5 @@ public:
 
     void newconnection(); // 处理新客户端连接请求
 
-    void setnewconnection(std::function<void(std::unique_ptr<Socket>)> fn);
+    void setnewconnectioncb(std::function<void(std::unique_ptr<Socket>)> fn);
 };

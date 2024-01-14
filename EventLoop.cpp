@@ -1,12 +1,29 @@
 #include"EventLoop.h"
 #include<iostream>
 
-EventLoop::EventLoop() //在析构函数中创建Epoll对象ep_.
-        :ep_(new Epoll), wakeupfd_(eventfd(0, EFD_NONBLOCK)),wakechannel_(new Channel(this, wakeupfd_))    
+int createtimerfd(int sec=30)   //创建定时器的fd
 {
-    // std::cout << __FILE__ << " , "<< __LINE__ << ",   EventLoop Constructor" << std::endl;
-    wakechannel_->setreadcallback(std::bind(&EventLoop::handlewakeup, this));
-    wakechannel_->enablereading(); //激活读事件, 如果事件循环被唤醒(IO循环), 就会激活 handlewakeup, 然后执行发送操作
+    int tfd = timerfd_create(CLOCK_MONOTONIC,TFD_CLOEXEC|TFD_NONBLOCK);   // 创建timerfd。
+    struct itimerspec timeout;                                // 定时时间的数据结构。
+    memset(&timeout,0,sizeof(struct itimerspec));
+    timeout.it_value.tv_sec = sec;                             // 定时时间，固定为5，方便测试。
+    timeout.it_value.tv_nsec = 0;
+    timerfd_settime(tfd,0,&timeout,0);
+    return tfd;
+}
+
+// 在构造函数中创建Epoll对象ep_。
+EventLoop::EventLoop(bool mainloop,int timetvl,int timeout):ep_(new Epoll),mainloop_(mainloop),
+                   timetvl_(timetvl),timeout_(timeout),
+                   wakeupfd_(eventfd(0,EFD_NONBLOCK)),wakechannel_(new Channel(this,wakeupfd_)),
+                   timerfd_(createtimerfd(timeout_)),timerchannel_(new Channel(this,timerfd_))
+
+{
+    wakechannel_->setreadcallback(std::bind(&EventLoop::handlewakeup,this));
+    wakechannel_->enablereading();
+
+    timerchannel_->setreadcallback(std::bind(&EventLoop::handletimer,this));
+    timerchannel_->enablereading();
 }
 
 
@@ -97,3 +114,61 @@ void EventLoop::handlewakeup() //事件循环线程被eventfd唤醒后执行的�
         fn();       //执行任务
     }
 }
+
+void EventLoop::handletimer()  //闹钟响时 执行的函数
+{
+    //重新开始记时
+
+    struct itimerspec timeout;                                // 定时时间的数据结构。
+    memset(&timeout,0,sizeof(struct itimerspec));
+    timeout.it_value.tv_sec = timetvl_;                             // 定时时间，固定为5，方便测试。
+    timeout.it_value.tv_nsec = 0;
+    timerfd_settime(timerfd_,0,&timeout,0);
+
+    // 在程序中有主事件循环和从事件循环, 主事件循环负责创建Connection对象, 从事件循环负责Connection对象的时间 
+    //定时器时间到了之后, 从事件循环应该清理过时的connection对象, 对主事件循环没有这样的要求 
+    if(mainloop_){
+        // printf("主事件循环的闹钟时间到了。\n");
+    }
+    else
+    {
+        printf("EventLoop::handletimer() thread is %ld. fd ",syscall(SYS_gettid));
+        time_t now = time(0); //获取当前事件
+        for(auto aa:conns_){
+            if (aa.first == 0) {
+            // 跳过键为 0 的键值对
+                std::cout << "Int EventLoop::handletimer() conns_ map , aa.first is 0 " << ", conns_ is empty()? , conns_.empty() : " << conns_.empty() << std::endl; 
+                //Connection对象已析构
+                // Int EventLoop::handletimer() conns_ map , aa.first is 0 , conns_ is empty()? , conns_.empty() : 1
+                // 段错误
+                continue;
+            }
+            //遍历map容器, 显示容器中每个Connection的fd()
+            std::cout << "EventLoop::handletimer()  conns_ : aa.first:  " <<  aa.first <<",  aa.second : " << aa.second << std::endl;
+            if(aa.second->timeout(now, timeout_)){
+                printf("EventLoop::handletimer()1 erase thread is %ld.\n",syscall(SYS_gettid)); 
+                {
+                    std::lock_guard<std::mutex> gd(mmutex_);
+                    conns_.erase(aa.first); //从map容器中删除超时的conn
+                }
+                timercallback_(aa.first); //从TcpServer的map中删除超时的conn
+            }
+        }
+        printf("\n");
+    }
+}
+
+ // 把Connection对象保存在conns_中。
+ void EventLoop::newconnection(spConnection conn)
+ {
+    std::lock_guard<std::mutex> gd(mmutex_);
+    // if(conn->fd() == 0); return;
+    std::cout << "EventLoop::newconnection, conn_, fisrt fd() = " << conn->fd() << " conn : " << conn << std::endl; 
+    conns_[conn->fd()]=conn;
+ }
+
+ // 将被设置为TcpServer::removeconn()
+ void EventLoop::settimercallback(std::function<void(int)> fn)
+ {
+    timercallback_=fn;
+ }

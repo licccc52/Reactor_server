@@ -4,7 +4,7 @@
 
 Channel::Channel(EventLoop *loop,int fd):loop_(loop),fd_(fd)      // 构造函数。
 {
-    std::cout << __FILE__ << " , "<< __LINE__ << ",   Channel Constructor" << std::endl;
+    // std::cout << __FILE__ << " , line : "<< __LINE__ << ",   Channel Constructor" << std::endl;
 }
 
 Channel::~Channel()    //析构函数

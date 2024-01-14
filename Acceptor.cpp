@@ -7,7 +7,7 @@ Acceptor::Acceptor(EventLoop *loop, const std::string &ip, const uint16_t port)
     if(loop == nullptr){
         std::cout << "! ----- In Acceptor::Acceptor , loop is null ---- ! " << std::endl;
     }
-    std::cout << __FILE__ << " , "<< __LINE__ << ",   Acceptor Constructor" << std::endl;
+    // std::cout << __FILE__ << " , "<< __LINE__ << ",   Acceptor Constructor" << std::endl;
     // servsock_ = new Socket(createnonblocking());
     InetAddress servaddr(ip, port);
     servsock_.setkeepalive(true);
@@ -58,7 +58,7 @@ void Acceptor::newconnection()
 }
 
 
-void Acceptor::setnewconnection(std::function<void(std::unique_ptr<Socket>)> fn)
+void Acceptor::setnewconnectioncb(std::function<void(std::unique_ptr<Socket>)> fn)
 {
     newconnectioncb_ = fn;
 }

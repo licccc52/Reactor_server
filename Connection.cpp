@@ -16,7 +16,7 @@ Connection::~Connection()
 {
     // delete clientsock_;
     // delete clientchannel_;
-    // printf("Connection对象已析构。\n");
+    printf("Connection对象已析构。\n");
 }
 
 int Connection::fd() const                              // 返回客户端的fd。
@@ -104,7 +104,8 @@ void Connection::onmessage()
                 //////////////////////////////////////////////////////////////
 
                 printf("message (eventfd=%d):%s\n",fd(),message.c_str());
-
+                lasttime_ = Timestamp::now(); //更新Connection时间戳
+                // std::cout << "lasttime = " << lasttime_.tostring() << std::endl;
                 onmessagecallback_(shared_from_this(),message);       // 回调TcpServer::onmessage()处理客户端的请求消息。
             }
             break;
@@ -166,4 +167,12 @@ void Connection::writecallback()         //在IO线程中执行
         clientchannel_->disablewriting();        
         sendcompletecallback_(shared_from_this());
     }
+}
+
+bool Connection::timeout(time_t now, int val) //判断TCP连接是否超时(空闲太久)
+{
+    if(this == nullptr){
+        printf("tbool Connection::timeout(),  this pointer is a nullptr");
+    }
+    return (now - lasttime_.toint()) > val;
 }

@@ -35,6 +35,11 @@
 2. 一个从Reactor负责多个Connection, 每个Connection的工作内容包括IO和计算(处理客户端要求). IO不会阻塞事件循环, 但是, 计算可能会阻塞事件循环. 如果计算阻塞了事件循环, 那么在同一Reactor中的全部Connection将会被阻塞
  -> 解决方式 : 分配器Acceptor把Connection分配给从Reactor, 从Reactor运行在线程池中, 有很多个, 此时IO和计算都在从Reactor中, 此时可以把计算的过程分离出来, 把计算的工作交给工作线程(workthread), 让工作线程去处理业务, 从Reactor只负责IO, 以免从Reactor阻塞在计算上.
 
+ # 为什么要清理空闲的Connection对象
+1. 空闲的connection对象是指长事件没有进行通讯的tcp连接
+2. 空闲的connection对象会占用资源, 需要定期清理
+3. 避免攻击, 攻击者可以利用Connection对象不释放的特点进行大量tcp连接, 占用服务器端资源
+
 # 多线程资源管理Connection对象 -> shared_ptr
  共享指针(shared_ptr), 共享指针会记录有多少个共享指针指向同一个物体, 当这个物体数量将为0的时候, 程序就会自动释放这个物体, 省去程序员手动delete的环节
  PS: 如果一块资源同时有裸指针和共享指针指向它的时候, 那么当所有的共享指针都被摧毁, 但是裸指针仍然存在的时候, 这个裸指针底下的子隐患仍然会被释放, 此时再用裸指针去访问那块资源就变成了未定义的行为,会导致很严重的后果.
@@ -64,3 +69,39 @@
 ### std::bind( , , ), bind函数
 第一个函数是成员函数的地址, 第二个参数是对象的地址(需要普通指针)
 ![回调过程](/home/lichuang/Reactor_server/recall_path.png)
+
+
+# 代码现在的未解决的bug Ubuntu 2004
+在EventLoop()函数中: 在map conns_已经为空的情况下, 执行else{} 中的for循环的时候还是会进入, 最终导致段错误
+```cpp
+    if(mainloop_){
+        // printf("主事件循环的闹钟时间到了。\n");
+    }
+    else
+    {
+        printf("EventLoop::handletimer() thread is %ld. fd ",syscall(SYS_gettid));
+        time_t now = time(0); //获取当前事件
+        for(auto aa:conns_){
+            if (aa.first == 0) {
+            // 跳过键为 0 的键值对
+                std::cout << "Int EventLoop::handletimer() conns_ map , aa.first is 0 " << ", conns_ is empty()? , conns_.empty() : " << conns_.empty() << std::endl; 
+                //Connection对象已析构
+                // Int EventLoop::handletimer() conns_ map , aa.first is 0 , conns_ is empty()? , conns_.empty() : 1
+                // 段错误
+                continue;
+            }
+            //遍历map容器, 显示容器中每个Connection的fd()
+            std::cout << "EventLoop::handletimer()  conns_ : aa.first:  " <<  aa.first <<",  aa.second : " << aa.second << std::endl;
+            if(aa.second->timeout(now, timeout_)){
+                printf("EventLoop::handletimer()1 erase thread is %ld.\n",syscall(SYS_gettid)); 
+                {
+                    std::lock_guard<std::mutex> gd(mmutex_);
+                    conns_.erase(aa.first); //从map容器中删除超时的conn
+                }
+                timercallback_(aa.first); //从TcpServer的map中删除超时的conn
+            }
+        }
+        printf("\n");
+    }
+```
+

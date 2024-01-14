@@ -7,6 +7,7 @@
 #include "ThreadPool.h"
 #include <map>  // 一个TcpServer里面 会有很多Connection, 用map管理connection
 #include <memory>
+#include <mutex>
 
 // TCP网络服务类。
 class TcpServer
@@ -18,7 +19,8 @@ private:
     int threadnum_;                                               // 线程池的大小，即从事件循环的个数。
     ThreadPool threadpool_;                                 // 线程池。
     std::map<int,spConnection>  conns_;            // 一个TcpServer有多个Connection对象，存放在map容器中。
-
+    std::mutex mmutex_;                             //保护conns_的互斥锁
+    //超时跟断开连接可能是同时的, 所以需要加锁
     std::function<void(spConnection)> newconnectioncb_;          // 回调EchoServer::HandleNewConnection()。
     std::function<void(spConnection)> closeconnectioncb_;        // 回调EchoServer::HandleClose()。
     std::function<void(spConnection)> errorconnectioncb_;         // 回调EchoServer::HandleError()。
@@ -45,4 +47,6 @@ public:
     void setonmessagecb(std::function<void(spConnection,std::string &message)> fn);
     void setsendcompletecb(std::function<void(spConnection)> fn);
     void settimeoutcb(std::function<void(EventLoop*)> fn);
+
+    void removeconn(int fd); //删除cons_中的Connection对象, 在EventLoop::handletimer()中将回调此函数
 };
