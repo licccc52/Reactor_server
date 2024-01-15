@@ -18,7 +18,7 @@ TcpServer::TcpServer(const std::string &ip,const uint16_t port,int threadnum)
         subloops_[ii]->setepolltimeoutcallback(std::bind(&TcpServer::epolltimeout,this,std::placeholders::_1));   // 设置timeout超时的回调函数。
         subloops_[ii]->settimercallback(std::bind(&TcpServer::removeconn,this,std::placeholders::_1));   // 设置清理空闲TCP连接的回调函数。
         threadpool_.addtask(std::bind(&EventLoop::run,subloops_[ii].get()));    // 在线程池中运行从事件循环。
-        sleep(1);
+        // sleep(1);
     }
 }
 
@@ -48,6 +48,22 @@ void TcpServer::start_run()
     mainloop_->run();
 }
 
+void TcpServer::stop()               //停止IO线程和事件循环 
+{
+    //停止主事件循环
+    mainloop_->stop();
+    printf("主事件循环停止 \n");
+    //停止从事件循环
+    for(int ii = 0; ii < threadnum_;ii++){
+        subloops_[ii]->stop();
+        printf("从事件%d循环停止 \n", ii);
+    }
+    //停止IO线程
+    threadpool_.Stop();
+    printf("IO线程停止 \n");
+
+}
+
 // 处理新客户端连接请求。
 void TcpServer::newconnection(std::unique_ptr<Socket> clientsock)
 {
@@ -66,7 +82,7 @@ void TcpServer::newconnection(std::unique_ptr<Socket> clientsock)
         conns_[conn->fd()]=conn;            // 把conn存放map容器中
     }
     subloops_[conn->fd()%threadnum_] -> newconnection(conn); //把conn存放到EventLoop的map容器中
-    printf("TcpServer::newconnection() thread is %ld.\n",syscall(SYS_gettid)); 
+    // printf("TcpServer::newconnection() thread is %ld.\n",syscall(SYS_gettid)); 
 
     if (newconnectioncb_) newconnectioncb_(conn);             // 回调EchoServer::HandleNewConnection()。
 }

@@ -44,17 +44,30 @@ void EchoServer::Start()
     tcpserver_.start_run();
 }
 
+void EchoServer::Stop()        // 停止服务。
+{
+    //停止工作线程
+    threadpool_.Stop();
+    printf("工作线程已经停止\n");
+
+    //停止IO线程(事件循环)
+    tcpserver_.stop();
+}
+
 // 处理新客户端连接请求，在TcpServer类中回调此函数。
 void EchoServer::HandleNewConnection(spConnection conn)    
 {
-    printf("EchoServer::HandleNewConnection() : thread is %ld.\n", syscall(SYS_gettid));
+    // printf("EchoServer::HandleNewConnection() : thread is %ld.\n", syscall(SYS_gettid));
+    printf ("new connection(fd=%d,ip=%s,port=%d) ok.\n",conn->fd(),conn->ip().c_str(),conn->port());
     
 }
 
 // 关闭客户端的连接，在TcpServer类中回调此函数。 
 void EchoServer::HandleClose(spConnection conn)  
 {
-    std::cout << "EchoServer conn closed, "<<" thread is " <<  syscall(SYS_gettid) << std::endl;
+    // std::cout << "EchoServer conn closed, "<<" thread is " <<  syscall(SYS_gettid) << std::endl;
+    printf ("connection closed(fd=%d,ip=%s,port=%d).\n",conn->fd(),conn->ip().c_str(),conn->port());
+
     // 根据业务的需求，在这里可以增加其它的代码。
 }
 

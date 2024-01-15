@@ -14,7 +14,7 @@ int createtimerfd(int sec=30)   //创建定时器的fd
 
 // 在构造函数中创建Epoll对象ep_。
 EventLoop::EventLoop(bool mainloop,int timetvl,int timeout):ep_(new Epoll),mainloop_(mainloop),
-                   timetvl_(timetvl),timeout_(timeout),
+                   timetvl_(timetvl),timeout_(timeout),stop_(false),
                    wakeupfd_(eventfd(0,EFD_NONBLOCK)),wakechannel_(new Channel(this,wakeupfd_)),
                    timerfd_(createtimerfd(timeout_)),timerchannel_(new Channel(this,timerfd_))
 
@@ -38,7 +38,7 @@ void EventLoop::run() // 运行事件循环
 {
     // printf("EventLoop::run() thread is %ld.\n", syscall(SYS_gettid));
     threadid_ = syscall(SYS_gettid); //获取事件循环所在的id
-    while(true){//事件循环
+    while(stop_ == false){//事件循环
         //超时事件设置为10s
         std::vector<Channel*> channels = ep_->loop(10 * 1000); // 存放epoll_wait() 返回事件,等待监视的fd有事件发生
 
@@ -56,6 +56,13 @@ void EventLoop::run() // 运行事件循环
         }
     }
     
+}
+
+void EventLoop::stop() //停止事件循环
+{
+    stop_ = true;
+    //就算设置为true, epoll_wait()如果在阻塞中的话, 还是不会立刻返回的, 只有定时器时间到了或者事件被唤醒才会返回
+    wakeup(); //唤醒事件循环, 如果没有这行代码, 事件循环将在下次闹钟响的时候或epoll_wait()超时时才会停下来
 }
 
 
@@ -132,7 +139,7 @@ void EventLoop::handletimer()  //闹钟响时 执行的函数
     }
     else
     {
-        printf("EventLoop::handletimer() thread is %ld. fd ",syscall(SYS_gettid));
+        // printf("EventLoop::handletimer() thread is %ld. fd ",syscall(SYS_gettid));
         time_t now = time(0); //获取当前事件
         for(auto aa:conns_){
             if (aa.first == 0) {
@@ -144,9 +151,9 @@ void EventLoop::handletimer()  //闹钟响时 执行的函数
                 continue;
             }
             //遍历map容器, 显示容器中每个Connection的fd()
-            std::cout << "EventLoop::handletimer()  conns_ : aa.first:  " <<  aa.first <<",  aa.second : " << aa.second << std::endl;
+            // std::cout << "EventLoop::handletimer()  conns_ : aa.first:  " <<  aa.first <<",  aa.second : " << aa.second << std::endl;
             if(aa.second->timeout(now, timeout_)){
-                printf("EventLoop::handletimer()1 erase thread is %ld.\n",syscall(SYS_gettid)); 
+                // printf("EventLoop::handletimer()1 erase thread is %ld.\n",syscall(SYS_gettid)); 
                 {
                     std::lock_guard<std::mutex> gd(mmutex_);
                     conns_.erase(aa.first); //从map容器中删除超时的conn

@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <queue> 
+#include <atomic>
 #include <mutex>
 #include <map>
 #include <sys/eventfd.h>
@@ -37,7 +38,7 @@ private:    //事件循环类
     int timerfd_; //定时器的fd
     std::unique_ptr<Channel> timerchannel_; //定时器的Channel
     bool mainloop_;  //true是主事件循环, false是从事件循环
-    // 1. 在时间循环中增加map<int, spConnect> conn_容器, 存放运行在该时间循环上全部的Connection对象
+    // 1. 在事件循环中增加map<int, spConnect> conn_容器, 存放运行在该时间循环上全部的Connection对象
     // 2. 如果闹钟时间到了, 遍历conns_, 判断每个Connection对象是否超时
     // 3. 如果超时了, 从conns_中删除Connection对象
     // 4. 还需要从TcpServer.conn_中删除Connection对象 
@@ -47,6 +48,8 @@ private:    //事件循环类
     std::map<int, spConnection> conns_; //存放运行在该事件循环上全部的Connection对象
     std::function<void(int)> timercallback_; //删除TcpServer中超时的Connection对象, 将被设置为TcpServer::removeconn()
 
+    std::atomic_bool stop_;    //初始值为false, 如果设置为true, 表示停止事件循环
+
 
 public:
 
@@ -54,6 +57,7 @@ public:
     ~EventLoop();   //在析构函数中销毁ep_
 
     void run(); // 运行事件循环
+    void stop(); //停止事件循环
 
     void updatechannel(Channel *ch);                        // 把channel添加/更新到红黑树上，channel中有fd，也有需要监视的事件。
     void removechannel(Channel *ch);                        // 从红黑树上删除Channel

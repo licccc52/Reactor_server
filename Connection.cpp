@@ -15,8 +15,8 @@ Connection::Connection(EventLoop *loop,std::unique_ptr<Socket> clientsock)
 Connection::~Connection()
 {
     // delete clientsock_;
-    // delete clientchannel_;
-    printf("Connection对象已析构。\n");
+    // delete clientchannel_; 该用智能指针
+    // printf("Connection对象已析构。\n");
 }
 
 int Connection::fd() const                              // 返回客户端的fd。
