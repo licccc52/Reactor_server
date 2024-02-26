@@ -76,7 +76,7 @@ void Socket::setkeepalive(bool on)
 }
 
 void Socket::bind(const InetAddress& servaddr)
-{
+{//使用本地的IP与端口和监听的套接字进行绑定
     if (::bind(fd_,servaddr.addr(),sizeof(sockaddr)) < 0 )
     {
         perror("bind() failed"); close(fd_); exit(-1);
@@ -103,7 +103,10 @@ int Socket::accept(InetAddress& clientaddr)
     sockaddr_in peeraddr;
     socklen_t len = sizeof(peeraddr);
     int clientfd = accept4(fd_,(sockaddr*)&peeraddr,&len,SOCK_NONBLOCK);
-
+    //当accept()被调用时，它会填充addr指向的结构体，以包含接受到的客户端的地址信息。这样，你可以在之后的通信中了解客户端的地址。
+    //accept()函数不会修改addrlen参数所指向的socklen_t类型的变量的值。
+    //addrlen参数用于指定addr结构体的大小，以确保accept()函数不会写入超出addr结构体大小的数据。
+    //accept()函数成功执行后，addrlen变量的值应该保持不变，因为它只是传递给函数以告知addr结构体的大小。
     clientaddr.setaddr(peeraddr);             // 客户端的地址和协议。
 
     // ip_ = clientaddr.ip();

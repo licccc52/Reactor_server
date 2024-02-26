@@ -94,7 +94,7 @@ void Connection::onmessage()
             while (true)             // 从接收缓冲区中拆分出客户端的请求消息。
             {
                 if(inputbuffer_.pickmessage(message) == false) break;
-                printf("message (eventfd=%d):%s\n",fd(),message.c_str());
+                // printf("message (eventfd=%d):%s\n",fd(),message.c_str());
                 lasttime_ = Timestamp::now(); //更新Connection时间戳
                 // std::cout << "lasttime = " << lasttime_.tostring() << std::endl;
                 onmessagecallback_(shared_from_this(),message);       // 回调TcpServer::onmessage()处理客户端的请求消息。

@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
     if (argc != 3)
     {
         printf("usage:./client ip port\n"); 
-        printf("example:./client 192.168.150.128 5085\n\n"); 
+        printf("example:./client 192.168.1.4 5050\n\n"); 
         return -1;
     }
 
@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
     printf("connect ok.\n");
     // printf("开始时间：%d\n",time(0));
 
-    for (int ii=0;ii<10;ii++)
+    for (int ii=0;ii<10000;ii++)
     {
         memset(buf,0,sizeof(buf));
         sprintf(buf,"这是第%d个超级女生。",ii);
@@ -56,7 +56,6 @@ int main(int argc, char *argv[])
         recv(sockfd,buf,len,0);           // 读取报文内容。
 
         printf("recv:%s\n",buf);
-        sleep(1);
     }
     sleep(100);
 

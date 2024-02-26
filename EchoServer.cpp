@@ -58,7 +58,7 @@ void EchoServer::Stop()        // 停止服务。
 void EchoServer::HandleNewConnection(spConnection conn)    
 {
     // printf("EchoServer::HandleNewConnection() : thread is %ld.\n", syscall(SYS_gettid));
-    printf ("new connection(fd=%d,ip=%s,port=%d) ok.\n",conn->fd(),conn->ip().c_str(),conn->port());
+    printf ("%s new connection(fd=%d,ip=%s,port=%d) ok.\n", Timestamp::now().tostring().c_str(),conn->fd(),conn->ip().c_str(),conn->port());
     
 }
 
@@ -66,7 +66,8 @@ void EchoServer::HandleNewConnection(spConnection conn)
 void EchoServer::HandleClose(spConnection conn)  
 {
     // std::cout << "EchoServer conn closed, "<<" thread is " <<  syscall(SYS_gettid) << std::endl;
-    printf ("connection closed(fd=%d,ip=%s,port=%d).\n",conn->fd(),conn->ip().c_str(),conn->port());
+    printf ("%s connection closed(fd=%d,ip=%s,port=%d) ok.\n", Timestamp::now().tostring().c_str(),conn->fd(),conn->ip().c_str(),conn->port());
+
 
     // 根据业务的需求，在这里可以增加其它的代码。
 }
@@ -99,6 +100,7 @@ void EchoServer::HandleMessage(spConnection conn,std::string &message)
 //处理客户端的请求报文, 用于添加给线程池
 void EchoServer::OnMessage(spConnection conn, std::string &message)  
 {
+    printf("%s message (eventfd=%d):%s\n",Timestamp::now().tostring().c_str(), conn->fd(),message.c_str());
     // 在这里，将经过若干步骤的运算。
     message="reply:"+ message;          // 回显业务。
     //报文格式 : 报文长度(头部) + 报文内容          

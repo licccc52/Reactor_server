@@ -14,7 +14,7 @@ int createnonblocking();
 class Socket
 {
 private:
-    const int fd_;          // Socket持有的fd，在构造函数中传进来。
+    const int fd_;          // Socket持有的fd，在构造函数中传进来, 一个Socket只有一个fd 且不需要改变fd的值
     std::string ip_;        //如果是listenfd, 存放服务端监听的ip, 如果是客户端连接的fd, 存放对端的ip
     uint16_t port_;         //如果是listenfd, 存放服务端监听的port, 如果是客户端连接的fd, 存放外部端口
 
