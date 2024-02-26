@@ -94,14 +94,14 @@ uint32_t Channel::revents() // 返回revents_成员
  void Channel::handleevent() //事件处理函数, epoll_wait() 返回的之后执行它
  { 
     if (revents_ & EPOLLRDHUP)    // 对方已关闭，有些系统检测不到，可以使用EPOLLIN，recv()返回0。
-        {
-            closecallback_();   //回调std::bind(&Connection::closecallback,this)
-        }                                //  普通数据  带外数据
-        else if (revents_ & (EPOLLIN|EPOLLPRI))   // 接收缓冲区中有数据可以读。
-        {
-            readcallback_();     //clientchannel_ 回调std::bind(&Connection::onmessage,this)
-                                // acceptchannel_.setreadcallback(std::bind(&Acceptor::newconnection, this));
-        }
+    {
+        closecallback_();   //回调std::bind(&Connection::closecallback,this)
+    }                                //  普通数据  带外数据
+    else if (revents_ & (EPOLLIN|EPOLLPRI))   // 接收缓冲区中有数据可以读。
+    {
+        readcallback_();     //clientchannel_ 回调std::bind(&Connection::onmessage,this)
+                            // acceptchannel_.setreadcallback(std::bind(&Acceptor::newconnection, this));
+    }
     else if (revents_ & EPOLLOUT)                  // 有数据需要写，暂时没有代码，以后再说。
     {
 
@@ -176,7 +176,7 @@ void Channel::onmessage()
  // 设置fd_读事件的回调函数。
 void Channel::setreadcallback(std::function<void()> fn)    
 {
-readcallback_=fn;
+    readcallback_=fn;
 }
 
 // 设置fd_发生错误的回调函数。

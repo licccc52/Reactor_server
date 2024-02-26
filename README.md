@@ -11,11 +11,50 @@
 封装了socket(), bind() listen() accept()等网络函数
 
 
-### Epoll类:封装了epoll
+### Epoll类:封装了epoll的三个函数
+    epoll_create() : Epoll::Epoll()
+    epoll_ctl() : updatechannel(), removechannel()
+    epoll_wait() : vector<Channel*> Epoll::loop() 返回事件发生的vector
+
 
 封装了地址协议(Socket,Epoll), 隐藏了底层语言的实现细节, 精简主程序, 增加了可读性
 ---------------------------------------------------------------------------
- 
+
+
+### Channel类: fd的保镖, 也相当于fd的管家 一对一服务
+```c++
+struct epoll_event
+{
+    uint32_t events; //指定事件
+    epoll_data_t data; //携带的数据
+};
+
+union epoll_data
+{
+    void *ptr;
+    int fd;
+    uint32_t u32; 
+    uint64_t u64;
+}
+
+```
+epoll_data中的void *ptr比fd携带的数据多, Channel类的作用类似于fd的保镖, 用回调函数的形式像Channel对象注册各类事件的处理函数
+
+
+### EventLoop类:  封装了Epoll类对象和事件循环
+
+### TcpServer类: 封装了EventLoop对象的类, 一个TcpServer可以有多个事件循环
+
+### Acceptor类: 由服务器端监听的Channel封装而成
+
+
+Channel类封装了监听fd和客户端连接的fd, 监听的fd与客户端连接的fd的功能是不同的, 监听的fd与客户端连接的fd的声明周期也不同
+
+### Connection类: 封装服务器端用于通信的Channel ,由客户端连接的Channel封装而成,
+
+Channel类是Connection类的底层类, Connection类是TcpServer类的底层类
+建立Tcp连接和释放Tcp连接都需要两次回调函数
+
 1. 封装网络地址
 
 2. 封装Socket
