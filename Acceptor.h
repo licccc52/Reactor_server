@@ -11,7 +11,7 @@
 class Acceptor{
 
 private:
-    EventLoop * loop_;          //Accoptor对应的事件循环, 由形参传入,  一个Acceptor对应一个事件循环
+    EventLoop *loop_;          //Accoptor对应的事件循环(是一个TcpServer类的事件循环对象), 由形参传入,  一个Acceptor对应一个事件循环
     Socket servsock_;          //服务端用于监听的socket, 在构造函数中创建
     Channel acceptchannel_;    //Acceptor对应的channel, 在构造函数中创建, 此处的channel使用栈内存, 因为每个Server只有一个Acceptor
     std::function<void(std::unique_ptr<Socket>)> newconnectioncb_; 

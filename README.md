@@ -55,6 +55,37 @@ Channel类封装了监听fd和客户端连接的fd, 监听的fd与客户端连�
 Channel类是Connection类的底层类, Connection类是TcpServer类的底层类
 建立Tcp连接和释放Tcp连接都需要两次回调函数
 
+
+### Buffer类: 封装了一个用户缓冲区，以及向这个缓冲区写数据读数据等一系列控制方法,为了读写配合，缓冲区内部调整以及动态扩容
+
+Tcp发送缓冲区的尺寸在默认情况下的全局设置是16384字节，即16k。
+
+Buffer类:
+在非阻塞的网络服务程序中, 事件循环不会阻塞在recv和send中, 如果数据接收不完整, 或者发送缓冲区已填满, 都不能等待, 所以Buffer是必须的
+在Reactor模型中, 每个Connection对象拥有InputBuffer和SendBuffer
+
+
+TcpConnection必须要有input buffer, TCP是一个无边界的字节流协议, 接收方必须要处理"接收的数据尚不构成一条完整的消息" 和 "一次接收到两条消息的数据" 等情况
+
+
+长度为n字节的消息分块到达的可能性有 2^n-1 种
+
+
+网络库在处理 "socket" 可读事件的时候, 必须一次性把socket里的数据读完(从操作系统buffer搬到应用层buffer), 否则会反复触发POLLIN事件, 造成busy-loop.那么网络库必然要应对"数据不完成的情况", 收到的数据先放到input buffer里, 等构成一条完整的消息再通知程序的业务逻辑. 所以在TCP网络编程中, 网络库必须要给每个TCP connection配置input buffer
+
+
+
+TcpConnection必须要有output buffer, 考虑一个常见场景: 程序想通过TCP连接发送100KB的数据, 但是在write()调用中, 操作系统只接受了80KB(受advertised window控制)
+
+
+你肯定不想在原地等待, 因为不知道会等多久(取决于对方什么时候接收数据, 然后滑动TCP窗口). [滑动窗口 : 发送方根据收到的确认信息动态地调整发送数据的量,以实现更高效的数据传输],
+程序应该尽快交出控制权, 返回event loop. 在这种情况下, 剩余的20KB数据怎么办?
+对于应用程序而言, 它只管生成数据,它不应该关心到底数据是一次性发送还是分成几次发送, 这些应该由网络库来操心, 程序只要调用TcpConnection::send()就行了, 网络库会负责到底.
+网络库会负责到底, 网络库应该接管这剩余的20KB的数据, 把它保存在该TCP connection的output buffer里, 然后注册POLLOUT事件, 一旦socket变得可写就立刻发送数据.
+当然, 这第二次write()也不一定能完全写入20KB, 如果还有剩余, 网络库应该继续关注POLLOUT事件; 如果写完了20KB,网络库应该停止关注POLLOUT, 以免造成busyloop
+
+_____
+![结构](结构.jpg)
 1. 封装网络地址
 
 2. 封装Socket
@@ -75,29 +106,31 @@ Channel类是Connection类的底层类, Connection类是TcpServer类的底层类
 
 10. Acceptor, Buffer, Channel, Connection, Epoll, EventLoop, InetAddress, Socket, TcpServer(最上层的类)都是底层类
 
-# TCP的粘包和分包
+### TCP的粘包和分包
 1. 粘包: tcp接收到数据之后, 有序放在接收缓冲区中, 数据之间不存在分隔符的说法, 如果接收方没有及时的从缓冲区中取走数据, 看上去就像粘在了一起.
 2. 分包: tcp报文的大小缺省是1460字节, 如果发送缓冲区的数据超过1460字节, tcp将拆分成多个包发送, 如果接收方及时的从接收缓冲区中取走了数据, 看上去就像是接收到了多个报文
+
+
 -> 解决方法 : 
 1) 采用固定长度的报文.
 2) 在报文前面加上报文长度. 报文头部(4字节的整数) + 报文内容
 3) 报文之间用分隔符. http协议 \r\n\r\n
 
-# 为什么要增加工作线程
+### 为什么要增加工作线程
 1. Acceptor运行在主Reactor(主进程)中, Connection运行在从Reactor(进程池)中
 2. 一个从Reactor负责多个Connection, 每个Connection的工作内容包括IO和计算(处理客户端要求). IO不会阻塞事件循环, 但是, 计算可能会阻塞事件循环. 如果计算阻塞了事件循环, 那么在同一Reactor中的全部Connection将会被阻塞
  -> 解决方式 : 分配器Acceptor把Connection分配给从Reactor, 从Reactor运行在线程池中, 有很多个, 此时IO和计算都在从Reactor中, 此时可以把计算的过程分离出来, 把计算的工作交给工作线程(workthread), 让工作线程去处理业务, 从Reactor只负责IO, 以免从Reactor阻塞在计算上.
 
- # 为什么要清理空闲的Connection对象
+### 为什么要清理空闲的Connection对象
 1. 空闲的connection对象是指长事件没有进行通讯的tcp连接
 2. 空闲的connection对象会占用资源, 需要定期清理
 3. 避免攻击, 攻击者可以利用Connection对象不释放的特点进行大量tcp连接, 占用服务器端资源
 
-# 多线程资源管理Connection对象 -> shared_ptr
+### 多线程资源管理Connection对象 -> shared_ptr
  共享指针(shared_ptr), 共享指针会记录有多少个共享指针指向同一个物体, 当这个物体数量将为0的时候, 程序就会自动释放这个物体, 省去程序员手动delete的环节
  PS: 如果一块资源同时有裸指针和共享指针指向它的时候, 那么当所有的共享指针都被摧毁, 但是裸指针仍然存在的时候, 这个裸指针底下的子隐患仍然会被释放, 此时再用裸指针去访问那块资源就变成了未定义的行为,会导致很严重的后果.
 
-# 项目结构
+### 项目结构
  基础类 
  Socket : fd_ ,  ip_ , port_ 
  Channel : fd_ , EventLoop*, 通过回调函数控制读写事件的执行, 处理读写epoll_wait()返回之后, 控制事件的执行
@@ -112,19 +145,19 @@ Channel类是Connection类的底层类, Connection类是TcpServer类的底层类
  server.Start() -> tcpserver_.start_run() -> mainloop_->run(); EventLoop::run() // 运行事件循环, std::vector<Channel*> channels = ep_->loop(), Epoll::loop()//把有时间发生的fd添加到vector<Channel*>; // 存放epoll_wait() 返回事件, // 遍历epoll返回的数组evs, ch->handleevent();遍历事件 -> Channel::handleevent() -> Connection::writecallback()"只有Connection有发送和读取缓冲区" -> ::send(), 然后清空缓冲区,注销写事件,clientchannel_->disabelwriting();
 
 
-# 程序主体结构
+### 程序主体结构
  主事件循环负责客户的连接, 然后把客户端的连接分配给从事件循环, 从事件循环运行在线程池中, 称为IO线程, IO线程接收到客户端的请求报文之后, 把它交给工作线程去计算, 工作线程计算完之后, 把响应报文直接发送给客户端
  
- # 异步唤醒循环
+### 异步唤醒循环
  目标 : 在工作线程中把发送数据的操作通过队列交给事件循环, 然后唤醒事件循环, 让事件循环执行发送的任务
 
-# mutex不可以拷贝, 可以将mutex改为引用传递参数
+### mutex不可以拷贝, 可以将mutex改为引用传递参数
 ### std::bind( , , ), bind函数
 第一个函数是成员函数的地址, 第二个参数是对象的地址(需要普通指针)
 ![回调过程](/home/lichuang/Reactor_server/recall_path.png)
 
 
-# 代码现在的未解决的bug Ubuntu 2004
+### 代码现在的未解决的bug Ubuntu 2004
 在EventLoop()函数中: 在map conns_已经为空的情况下, 执行else{} 中的for循环的时候还是会进入, 最终导致段错误
 ```cpp
     if(mainloop_){
@@ -158,7 +191,7 @@ Channel类是Connection类的底层类, Connection类是TcpServer类的底层类
     }
 ```
 
-# 服务程序的退出
+### 服务程序的退出
 1. 设置2和15的信号
 2. 在信号处理函数中停止主从时间循环和工作循环
 3. 服务程序主动退出

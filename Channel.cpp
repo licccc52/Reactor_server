@@ -113,65 +113,6 @@ uint32_t Channel::revents() // 返回revents_成员
     }
  }
 
-/*
-// 处理新客户端连接请求
-void Channel::newconnection(Socket* servsock) 
-{
-    ////////////////////////////////////////////////////////////////////////                    
-    InetAddress clientaddr;// 注意，clientsock只能new出来，不能在栈上，否则析构函数会关闭fd。
-    Socket *clientsock = new Socket(servsock->accept(clientaddr));
-    printf ("Channel::newconnection :  accept client InetAddress Instance created (fd=%d,ip=%s,port=%d) ok.\n", clientsock->fd(),clientaddr.ip(),clientaddr.port());
-
-    /*
-    // 为新客户端连接准备读事件，并添加到epoll中。
-    Channel* clientchannel = new Channel(loop_, clientsock->fd());
-    clientchannel->setreadcallback(std::bind(&Channel::onmessage,clientchannel));
-    clientchannel->useet();
-    clientchannel->enablereading();
-    //客户端连接上来的fd采用边缘触发
-    ////////////////////////////////////////////////////////////////////////
-    
-
-   Connection *conn = new Connection(loop_, clientsock);
-
-}
-
-*/
-/*
-// 处理对端发送过来的信息
-void Channel::onmessage() 
-{
-    ////////////////////////////////////////////////////////////////////////
-    char buffer[1024];
-    while (true)             // 由于使用非阻塞IO，一次读取buffer大小数据，直到全部的数据读取完毕。
-    {    
-        bzero(&buffer, sizeof(buffer));
-        ssize_t nread = read(fd_, buffer, sizeof(buffer));
-        if (nread > 0)      // 成功的读取到了数据。
-        {
-            // 把接收到的报文内容原封不动的发回去。
-            printf("recv(eventfd=%d):%s\n",fd_,buffer);
-            send(fd_,buffer,strlen(buffer),0);
-        } 
-        else if (nread == -1 && errno == EINTR) // 读取数据的时候被信号中断，继续读取。
-        {  
-            continue;
-        } 
-        else if (nread == -1 && ((errno == EAGAIN) || (errno == EWOULDBLOCK))) // 全部的数据已读取完毕。
-        {
-            break;
-        } 
-        else if (nread == 0)  // 客户端连接已断开。
-        {  
-            // printf("2client(eventfd=%d) disconnected.\n",fd_);
-            // close(fd_);            // 关闭客户端的fd。
-            closecallback_();
-            break;
-        }
-    }
-}
-
-*/
 
  // 设置fd_读事件的回调函数。
 void Channel::setreadcallback(std::function<void()> fn)    
