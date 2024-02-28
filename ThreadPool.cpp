@@ -7,7 +7,7 @@ ThreadPool::ThreadPool(size_t threadnum, const std::string &threadtype):stop_(fa
     {
         // 用lambda函创建线程。
         /* [this]捕获当前类中的this指针, 让lambda表达式拥有和当前类成员函数同样的访问权限  */
-		threads_.emplace_back([this] 
+		threads_.emplace_back([this]
         { //lambda函数内部
             printf("In ThreadPool::ThreadPool, create %s thread(%ld).\n", threadtype_.c_str(), syscall(SYS_gettid));     // 显示线程ID 和 线程类型
 
@@ -15,8 +15,9 @@ ThreadPool::ThreadPool(size_t threadnum, const std::string &threadtype):stop_(fa
 			{
 				std::function<void()> task;       //创建一个函数对象 ,用于存放出队的元素。
 
-				{   // 锁作用域的开始。 ///////////////////////////////////
-					std::unique_lock<std::mutex> lock(this->mutex_);
+				{   // 锁作用域的开始。 
+                // 互斥锁不是锁定资源本身，而是通过控制对资源的访问来保护资源。当一个线程持有互斥锁时，其他线程不能同时持有该互斥锁，从而确保了在同一时间只有一个线程可以访问共享资源，保证了数据的一致性和完整性。
+					std::unique_lock<std::mutex> lock(this->mutex_); //对象会在构造时自动尝试获取 mutex_ 的锁。如果获取到了锁，那么这个线程就可以安全地访问资源；如果没有获取到锁，线程会被阻塞，直到它能够成功地获取到锁为止。
 
 					// 等待生产者的条件变量。
                     //wait()函数有两个变量 , 锁, 谓词
@@ -31,16 +32,15 @@ ThreadPool::ThreadPool(size_t threadnum, const std::string &threadtype):stop_(fa
 					this->condition_.wait(lock, [this] 
                     { 
                         return ((this->stop_==true) || (this->taskqueue_.empty()==false)); // 非空或者 要求停止的时候返回
-                    });
-
-                    //跳出条件 : stop_标志为true, 或者 任务队列 taskqueue不为空, 
+                    });//跳出条件 : stop_标志为true, 或者 任务队列 taskqueue不为空, 或者其他线程调用了notify_one() 或 notify_all() 来唤醒
+                    //线程被唤醒之后，它会重新获取 lock 对象所关联的互斥锁，并继续执行后续代码。
                     //wait()函数的条件成立, 如果是stop_标志 跳出 的; 需要判断是否还有剩余任务, 如果还有任务(任务队列不为空)
 
                     // 在线程池停止之前，如果队列中还有任务，执行完再退出。
 					if ((this->stop_==true)&&(this->taskqueue_.empty()==true)) return;//如果满足这两个条件, 函数返回, lambda函数退出
 
                     // 出队一个任务。
-					task = std::move(this->taskqueue_.front());
+					task = std::move(this->taskqueue_.front());//移动语义避免拷贝
 					this->taskqueue_.pop();
 				}   // 锁作用域的结束。 ///////////////////////////////////
 
