@@ -14,7 +14,7 @@ class TcpServer
 {
 private:
     std::unique_ptr<EventLoop> mainloop_;                                 // 主事件循环。 祼指针 普通指针 原始指针 std::unique_ptr
-    std::vector<std::unique_ptr<EventLoop>> subloops_;            // 存放从事件循环的容器。
+    std::vector<std::unique_ptr<EventLoop>> subloops_;            // 存放从事件循环的容器, 运行在线程池中
     Acceptor acceptor_;                                         // 一个TcpServer只有一个Acceptor对象。
     int threadnum_;                                               // 线程池的大小，即从事件循环的个数。
     ThreadPool threadpool_;                                 // 线程池。

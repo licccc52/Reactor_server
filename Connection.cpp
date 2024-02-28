@@ -73,7 +73,7 @@ void Connection::setsendcompletecallback(std::function<void(spConnection)> fn)
 }
 
 // 处理对端发送过来的消息。
-void Connection::onmessage()
+void Connection::onmessage()//被clientchannel_ 回调的readcallback_();  ,std::bind(&Connection::onmessage,this)
 {
     char buffer[1024];
     while (true)             // 由于使用非阻塞IO，一次读取buffer大小数据，直到全部的数据读取完毕。
@@ -110,8 +110,8 @@ void Connection::onmessage()
     }
 }
 
-//发送数据, 不管在任何线程中, 都是调用此函数发送数据
-void Connection::send(const char *data,size_t size)    //在工作线程中执行  
+//发送数据, 不管在任何线程中, 都是调用此函数发送数据, 在EchoServer::Onmessage()中被调用, 然后会被addtask()中
+void Connection::send(const char *data,size_t size)    //在工作线程中执行
 {
     if (disconnect_==true) {  printf("客户端连接已断开了, send()直接返回。\n"); return;}
 

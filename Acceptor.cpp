@@ -38,8 +38,6 @@ void Acceptor::newconnection()
     ////////////////////////////////////////////////////////////////////////                    
     InetAddress clientaddr;// 注意，clientsock只能new出来，不能在栈上，否则析构函数会关闭fd。
     std::unique_ptr<Socket> clientsock(new Socket(servsock_.accept(clientaddr))); 
-
-
     /*
     // 为新客户端连接准备读事件，并添加到epoll中。
     Channel* clientchannel = new Channel(loop_, clientsock->fd());
@@ -49,7 +47,6 @@ void Acceptor::newconnection()
     //客户端连接上来的fd采用边缘触发
     ////////////////////////////////////////////////////////////////////////
     */
-
     //Connection *conn = new Connection(loop_, clientsock);
     //给客户端连接的socket设置ip和端口号
     clientsock->setipport(clientaddr.ip(), clientaddr.port());

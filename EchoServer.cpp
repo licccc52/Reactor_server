@@ -54,9 +54,9 @@ void EchoServer::Stop()        // 停止服务。
     tcpserver_.stop();
 }
 
-// 处理新客户端连接请求，在TcpServer类中回调此函数。
+// 处理新客户端连接请求，在TcpServer类中 TcpServer::newconnection 回调此函数。
 void EchoServer::HandleNewConnection(spConnection conn)    
-{
+{   
     // printf("EchoServer::HandleNewConnection() : thread is %ld.\n", syscall(SYS_gettid));
     printf ("%s new connection(fd=%d,ip=%s,port=%d) ok.\n", Timestamp::now().tostring().c_str(),conn->fd(),conn->ip().c_str(),conn->port());
     
@@ -86,7 +86,7 @@ void EchoServer::HandleMessage(spConnection conn,std::string &message)
     // printf("EchoServer::HandleMessage() : thread is %ld.\n", syscall(SYS_gettid));
 
     if(threadpool_.size() == 0){
-        //没有工作线程, 直接调用处理客户端请求报文的函数, (IO线程)
+        //没有工作线程, 直接调用处理客户端请求报文的函数, (IO线程)//
         message = "IO thread "+ message;
         OnMessage(conn, message);
     }
@@ -94,11 +94,12 @@ void EchoServer::HandleMessage(spConnection conn,std::string &message)
     //把业务添加到线程池的任务队列中
         message = "WORK thread "+ message;
         threadpool_.addtask(std::bind(&EchoServer::OnMessage, this, conn, message)); //工作线程
+        //std::bind ()将 成员函数 和 对象 绑定在一起。 通过使用&操作符取得成员函数的地址，第二个参数则是指向对象的指针。
     }
 }
 
 //处理客户端的请求报文, 用于添加给线程池
-void EchoServer::OnMessage(spConnection conn, std::string &message)  
+void EchoServer::OnMessage(spConnection conn, std::string &message)
 {
     printf("%s message (eventfd=%d):%s\n",Timestamp::now().tostring().c_str(), conn->fd(),message.c_str());
     // 在这里，将经过若干步骤的运算。

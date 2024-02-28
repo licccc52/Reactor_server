@@ -40,7 +40,7 @@ ThreadPool::ThreadPool(size_t threadnum, const std::string &threadtype):stop_(fa
 					if ((this->stop_==true)&&(this->taskqueue_.empty()==true)) return;//如果满足这两个条件, 函数返回, lambda函数退出
 
                     // 出队一个任务。
-					task = std::move(this->taskqueue_.front());//移动语义避免拷贝
+					task = std::move(this->taskqueue_.front());//使用移动语义避免拷贝提升性能
 					this->taskqueue_.pop();
 				}   // 锁作用域的结束。 ///////////////////////////////////
 

@@ -141,7 +141,6 @@ void TcpServer::sendcomplete(spConnection conn)
 void TcpServer::epolltimeout(EventLoop *loop)         
 {
     // printf("epoll_wait() timeout.\n");
-
     if (timeoutcb_)  timeoutcb_(loop);           // 回调EchoServer::HandleTimeOut()。
 }
 

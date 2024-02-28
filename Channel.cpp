@@ -91,7 +91,7 @@ uint32_t Channel::revents() // 返回revents_成员
     return revents_;
 }
 
- void Channel::handleevent() //事件处理函数, epoll_wait() 返回的之后执行它
+ void Channel::handleevent() //事件处理函数, 在EventLoop::run()中ep_->loop()的epoll_wait() 返回的之后执行它
  { 
     if (revents_ & EPOLLRDHUP)    // 对方已关闭，有些系统检测不到，可以使用EPOLLIN，recv()返回0。
     {

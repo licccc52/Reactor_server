@@ -19,7 +19,7 @@ EventLoop::EventLoop(bool mainloop,int timetvl,int timeout):ep_(new Epoll),mainl
                    timerfd_(createtimerfd(timeout_)),timerchannel_(new Channel(this,timerfd_))
 
 {
-    wakechannel_->setreadcallback(std::bind(&EventLoop::handlewakeup,this));
+    wakechannel_->setreadcallback(std::bind(&EventLoop::handlewakeup,this)); 
     wakechannel_->enablereading();
 
     timerchannel_->setreadcallback(std::bind(&EventLoop::handletimer,this));
@@ -35,7 +35,7 @@ EventLoop::~EventLoop()   //在析构函数中销毁ep_
 
 
 void EventLoop::run() // 运行事件循环
-{
+{   //只有IO线程会运行这个函数
     // printf("EventLoop::run() thread is %ld.\n", syscall(SYS_gettid));
     threadid_ = syscall(SYS_gettid); //获取事件循环所在的id
     while(stop_ == false){//事件循环
@@ -83,7 +83,7 @@ void EventLoop::setepolltimeoutcallback(std::function<void(EventLoop*)> fn)  //�
     epolltimeoutcallback_ = fn;
 }
 
-bool EventLoop::isinloopthread() // 判断当前线程是否为事件循环线程
+bool EventLoop::isinloopthread() // 判断当前线程是否为事件循环线程(IO线程)
 {
     return threadid_ == syscall(SYS_gettid); 
 }
@@ -105,6 +105,8 @@ void EventLoop::wakeup() //唤醒事件循环
 }
 
 void EventLoop::handlewakeup() //事件循环线程被eventfd唤醒后执行的函数
+// wakechannel_->setreadcallback(std::bind(&EventLoop::handlewakeup,this));  被设置成eventfd所属Channel的回调函数, 当读事件发生的时候, 调用此函数
+// wakechannel_->enablereading();
 {
     printf("EventLoop::handlewakeup(), thread id is %ld.\n", syscall(SYS_gettid));
     

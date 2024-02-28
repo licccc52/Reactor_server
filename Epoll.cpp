@@ -143,7 +143,7 @@ std::vector<Channel*> Epoll::loop(int timeout){
 //      uint32_t events;	/* Epoll events */
 //      epoll_data_t data;	/* User data variable */
 //     } __EPOLL_PACKED;
-        Channel* ch = (Channel*)events_[i].data.ptr; //epoll_event
+        Channel* ch = (Channel*)events_[i].data.ptr; //epoll_event ptr存放的是Channel对象
         ch->setrevents(events_[i].events);
         channels.push_back(ch);
     }
