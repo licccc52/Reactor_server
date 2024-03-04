@@ -20,6 +20,7 @@ class EchoServer;
 
 int main(int argc,char *argv[])
 {
+    printf("tcpServer start!\n"); 
     if (argc != 3) 
     { 
         printf("usage: ./tcpepoll ip port\n"); 

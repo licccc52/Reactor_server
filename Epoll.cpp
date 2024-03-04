@@ -65,7 +65,7 @@ void Epoll::updatechannel(Channel *ch){
             perror("epoll_ctl() failed.\n");
             exit(-1);
         }
-        ch->setinepoll(); // 把channel的inepoll_成员设置为true
+        ch->setinepoll(true); // 把channel的inepoll_成员设置为true
     }
 }
 

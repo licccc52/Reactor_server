@@ -66,9 +66,9 @@ void Channel::remove()          //从事件循环中删除Channel
 }
 
 
-void Channel::setinepoll() // 把inepoll_成员的值设置为true
+void Channel::setinepoll(bool inepoll) // 把inepoll_成员的值设置为true
 {
-    inepoll_ = true;
+    inepoll_ = inepoll;
 }
 
 void Channel::setrevents(uint32_t ev) //设置revents_成员的值 为参数ev

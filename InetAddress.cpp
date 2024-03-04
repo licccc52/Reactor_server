@@ -8,7 +8,7 @@ InetAddress::InetAddress()
 
 InetAddress::InetAddress(const std::string &ip,uint16_t port)      // 如果是监听的fd，用这个构造函数。
 {
-    // std::cout << __FILE__ << " , line:  "<< __LINE__ << ",   InetAddress()2 Constructor" << std::endl;
+    std::cout << __FILE__ << " , line:  "<< __LINE__ << ",   InetAddress()2 Constructor" << std::endl;
     addr_.sin_family = AF_INET;                                 // IPv4网络协议的套接字类型。
     addr_.sin_addr.s_addr = inet_addr(ip.c_str());              // 服务端用于监听的ip地址。c_str()返回一个指向正规C字符串的指针常量
     addr_.sin_port = htons(port);                              // 服务端用于监听的端口。htons()函数的作用是将一个16位数从主机字节顺序转换成网络字节顺序 

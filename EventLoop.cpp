@@ -36,7 +36,7 @@ EventLoop::~EventLoop()   //在析构函数中销毁ep_
 
 void EventLoop::run() // 运行事件循环
 {   //只有IO线程会运行这个函数
-    // printf("EventLoop::run() thread is %ld.\n", syscall(SYS_gettid));
+    printf("EventLoop::run() thread is %ld.   ", syscall(SYS_gettid));
     threadid_ = syscall(SYS_gettid); //获取事件循环所在的id
     while(stop_ == false){//事件循环
         //超时事件设置为10s
@@ -50,7 +50,7 @@ void EventLoop::run() // 运行事件循环
             // 如果infds>0，表示有事件发生的fd的数量。
             for (auto &ch : channels)       // 遍历epoll返回的数组evs。
             {
-                printf("In EventLoop::run() -> EVENTLOOP\n");
+                printf("In EventLoop::run() -> ch.fd() : %d\n", ch->fd());
                 ch->handleevent();
             }
         }

@@ -44,7 +44,7 @@ public:
     void disableall();     //取消全部的事件
     void remove();          //从事件循环中删除Channel
     
-    void setinepoll(); // 把inepoll_成员的值设置为true
+    void setinepoll(bool inepoll); // 把inepoll_成员的值设置为true
     void setrevents(uint32_t ev); //设置revents_成员的值 为参数ev
     bool inepoll(); //返回inepoll_成员
     uint32_t events(); // 返回events_成员
