@@ -30,7 +30,7 @@ int main(int argc,char *argv[])
     signal(SIGTERM, Stop); //信号15, 系统kill或killall命令默认发送的信号
     signal(SIGINT, Stop); //信号2, 按Ctrl+c 发送的信号
 
-    server = new EchoServer(argv[1], atoi(argv[2]), 3, 3);
+    server = new EchoServer(argv[1], atoi(argv[2]), 1, 1);
     
     server->Start(); //运行事件循环
     

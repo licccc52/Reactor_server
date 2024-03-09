@@ -134,7 +134,7 @@ std::vector<Channel*> Epoll::loop(int timeout){
         printf("Epoll:: epoll_wait(), std::vector<Channel*> , timeout.\n");
         return channels;
     }
-
+    printf("Epoll:: epoll_wait() infds = %d n", infds);
     //如果infds>0 ,表示有事件发生的fd的数量
     for(int i = 0; i < infds; i++) //遍历epoll返回的数据events_
     {
@@ -143,6 +143,7 @@ std::vector<Channel*> Epoll::loop(int timeout){
 //      uint32_t events;	/* Epoll events */
 //      epoll_data_t data;	/* User data variable */
 //     } __EPOLL_PACKED;
+        // events_[i].data.ptr 在updatechannel中被初始化
         Channel* ch = (Channel*)events_[i].data.ptr; //epoll_event ptr存放的是Channel对象
         ch->setrevents(events_[i].events);
         channels.push_back(ch);
