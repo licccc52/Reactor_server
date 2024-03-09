@@ -1,7 +1,7 @@
 #include "Connection.h"
 
 Connection::Connection(EventLoop *loop,std::unique_ptr<Socket> clientsock)
-        :loop_(loop),clientsock_(std::move(clientsock)),disconnect_(false), clientchannel_(new Channel(loop_, clientsock_->fd()))
+        :loop_(loop),clientsock_(std::move(clientsock)),disconnect_(false), clientchannel_(new Channel(loop_, clientsock_->fd())),inputbuffer_(0)
 {
     // 为新客户端连接准备读事件，并添加到epoll中。 
     clientchannel_->setreadcallback(std::bind(&Connection::onmessage,this));
@@ -16,7 +16,7 @@ Connection::~Connection()
 {
     // delete clientsock_;
     // delete clientchannel_; 该用智能指针
-    // printf("Connection对象已析构。\n");
+    printf(",  Connection对象已析构。\n");
 }
 
 int Connection::fd() const                              // 返回客户端的fd。
@@ -97,6 +97,7 @@ void Connection::onmessage()//被clientchannel_ 回调的readcallback_();  ,std:
                 // printf("message (eventfd=%d):%s\n",fd(),message.c_str());
                 lasttime_ = Timestamp::now(); //更新Connection时间戳
                 // std::cout << "lasttime = " << lasttime_.tostring() << std::endl;
+                // std::cout <<"Connection::onmessage() : " << message << std::endl;
                 onmessagecallback_(shared_from_this(),message);       // 回调TcpServer::onmessage()处理客户端的请求消息。
             }
             break;
@@ -118,7 +119,10 @@ void Connection::send(const char *data,size_t size)    //在工作线程中执�
     if(loop_->isinloopthread()){//判断当前线程是否为事件循环的线程(IO线程)
         //如果当前线程是IO线程, 直接执行发送数据的操作.
         printf("Connection::send() 在事件循环的线程中。\n");
-        sendinloop(data, size);
+        char* dataCopy = strdup(data);
+        sendinloop(dataCopy, size);
+        printf("Connection::send() 事件循环OVER。\n");
+
     }
     else{
         //如果当前线程不是IO线程, 把发送数据的操作交给IO线程去执行
@@ -136,14 +140,15 @@ void Connection::send(const char *data,size_t size)    //在工作线程中执�
 
 //发送数据, 如果当前线程是IO线程, 直接调用此函数, 如果是工作线程, 将把此函数传给IO线程
 void Connection::sendinloop(const char *data,size_t size){
+    printf("Connection::sendinloop()  running");
     if (data != nullptr && data[0] != '\0') {
-        // printf("Connection::sendinloop() data的地址: %p, data: %s\n", static_cast<const void*>(data), data);
+        printf("Connection::sendinloop() data的地址: %p, data: %s\n", static_cast<const void*>(data), data);
     } else {
         printf("Connection::sendinloop() data的地址: %p, data: (empty)\n", static_cast<const void*>(data));
     }
-    outputbuffer_.appendwithsep(data,size);    // 把需要发送的数据保存到Connection的发送缓冲区中。
+    outputbuffer_.append(data,size);    // 把需要发送的数据保存到Connection的发送缓冲区中。
     clientchannel_->enablewriting();    // 注册写事件。
-    free((void*)data); //释放dataCopy
+    // free((void*)data); //释放dataCopy 在rpc项目中不需要这一行
 }
 
 // 处理写事件的回调函数，供Channel回调。
@@ -165,5 +170,6 @@ bool Connection::timeout(time_t now, int val) //判断TCP连接是否超时(空�
     if(this == nullptr){
         printf("tbool Connection::timeout(),  this pointer is a nullptr");
     }
-    return (now - lasttime_.toint()) > val;
+    // return (now - lasttime_.toint()) > val;
+    return false;
 }

@@ -103,7 +103,7 @@ void EchoServer::OnMessage(spConnection conn, std::string &message)
 {
     printf("%s message (eventfd=%d):%s\n",Timestamp::now().tostring().c_str(), conn->fd(),message.c_str());
     // 在这里，将经过若干步骤的运算。
-    message="reply:"+ message;          // 回显业务。
+    // message="reply:"+ message;          // 回显业务。
     //报文格式 : 报文长度(头部) + 报文内容          
     conn->send(message.data(), message.size());   // 把临时缓冲区中的数据发送出去。
     //send()函数注册一个写事件
@@ -126,3 +126,7 @@ void EchoServer::HandleTimeOut(EventLoop *loop)
     // 根据业务的需求，在这里可以增加其它的代码。
 }
 */
+TcpServer* EchoServer::getTcpServer()
+{
+    return &tcpserver_;
+}

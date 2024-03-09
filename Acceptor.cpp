@@ -9,11 +9,11 @@ Acceptor::Acceptor(EventLoop *loop, const std::string &ip, const uint16_t port)
     }
     // std::cout << __FILE__ << " , "<< __LINE__ << ",   Acceptor Constructor" << std::endl;
     // servsock_ = new Socket(createnonblocking());
-    InetAddress servaddr(ip, port);
-    servsock_.setkeepalive(true);
+    InetAddress servaddr(ip, port);             // 服务端的地址和协议。
     servsock_.setreuseaddr(true);
     servsock_.settcpnodelay(true);
     servsock_.setreuseport(true);
+    servsock_.setkeepalive(true);
 
     servsock_.bind(servaddr);
     servsock_.listen();

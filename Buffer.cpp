@@ -21,7 +21,7 @@ void Buffer::append(const char *data, size_t size)     //把数据追加到buf_�
 void Buffer::appendwithsep(const char *data, size_t size)//把数据追加到buf_中, 附加报文头部
 {
     if (data != nullptr && data[0] != '\0') {
-        // printf("Buffer::appendwithhead data的地址: %p, data: %s\n", static_cast<const void*>(data), data);
+        printf("Buffer::appendwithhead data的地址: %p, data: %s\n", static_cast<const void*>(data), data);
     } else {
         printf("Buffer::appendwithhead data的地址: %p, data: (empty)\n", static_cast<const void*>(data));
     }
@@ -66,13 +66,15 @@ bool Buffer::pickmessage(std::string &ss) //从buf中拆分出一个报文, 存�
     if(buf_.size() == 0) return false;
     if(sep_ == 0) //没有分隔符
     {
-
+        ss = buf_.substr(0, buf_.size());//从buf_中获取一个报文
+        buf_.erase(0, buf_.size()); //从buf_中删除刚才已获取的报文
     }
     else if(sep_ == 1)//四字节的报头
     {
         int len;
         memcpy(&len, buf_.data(), 4); //从buf_中获取报文头部
         //如果buf_中的数据量小于报文头部, 说明buf_中的报文内容不完整
+
         if(buf_.size() < len+4) return false;
 
         ss = buf_.substr(4, len);//从buf_中获取一个报文
